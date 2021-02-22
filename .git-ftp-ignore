@@ -4,6 +4,17 @@
 *.conf
 [Rr]obots.txt
 
+# Git Files
+.github/*
+.gitignore
+*/.gitignore
+*/.gitkeep
+.git-ftp-ignore
+.git-ftp-include
+.gitlab-ci.yml
+readme.md
+*.md
+
 # Ignore everything in user/
 user/*
 # Except...
