@@ -35,7 +35,10 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USER }}
         password: ${{ secrets.FTP_PASSWORD }}
-        exclude: .github/*
+        exclude: .git*
+          - .git*/**
+          -  **/.git*/**
+          - .github/*
          - .gitignore
           - */.gitignore
           - */.gitkeep
