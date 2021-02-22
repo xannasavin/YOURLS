@@ -14,6 +14,8 @@
 .gitlab-ci.yml
 readme.md
 *.md
+.editorconfig
+.gitattributes
 
 # Ignore everything in user/
 user/*
@@ -27,6 +29,18 @@ user/*
 !user/**/index.html
 
 ############
+
+## Other Files
+LICENSE
+composer.json
+composer.lock
+phpunit.xml.dist
+readme.html
+sample-public-api.txt
+sample-public-front-page.txt
+sample-remote-api-call.txt
+sample-robots.txt
+
 ## Tests
 
 includes/**/tests/
