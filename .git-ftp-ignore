@@ -1,1 +1,44 @@
+# Ignore server configuration files
+.htaccess
+*.config
+*.conf
+[Rr]obots.txt
 
+# Ignore everything in user/
+user/*
+# Except...
+# ... core plugins
+!user/plugins/hyphens-in-urls/
+!user/plugins/random-bg/
+!user/plugins/random-shorturls/
+# ... and index.html files
+!user/index.html
+!user/**/index.html
+
+############
+## Tests
+
+includes/**/tests/
+build/
+coverage/
+phpunit.xml
+tests/yourls-tests-config.php
+tests/vendor/
+tests/data/auth/config-test-auth-hashed.php
+tests/data/htaccess/test*
+
+############
+## Environnement
+
+# Windows image file caches
+Thumbs.db
+# Folder config file
+Desktop.ini
+# Mac crap
+.DS_Store
+# NetBeans files
+/nbproject/
+.idea
+
+##OWN
+.git-ftp-ignore
