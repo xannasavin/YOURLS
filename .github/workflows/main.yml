@@ -35,3 +35,54 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USER }}
         password: ${{ secrets.FTP_PASSWORD }}
+        exclude: .github/*
+         - .gitignore
+          - */.gitignore
+          - */.gitkeep
+          - .git-ftp-ignore
+          - .git-ftp-include
+          - .gitlab-ci.yml
+          - readme.md
+          - *.md
+          
+          - .htaccess
+          - *.config
+          - *.conf
+          - [Rr]obots.txt
+
+          - .editorconfig
+          - .gitattributes
+
+          - user/*
+
+          - !user/plugins/hyphens-in-urls/
+          - !user/plugins/random-bg/
+          - !user/plugins/random-shorturls/
+
+          - !user/index.html
+          - !user/**/index.html
+
+          - LICENSE
+          - composer.json
+          - composer.lock
+          - phpunit.xml.dist
+          - readme.html
+          - sample-public-api.txt
+          - sample-public-front-page.txt
+          - sample-remote-api-call.txt
+          - sample-robots.txt
+
+          - includes/**/tests/
+          - build/
+          - coverage/
+          - phpunit.xml
+          - tests/yourls-tests-config.php
+          - tests/vendor/
+          - tests/data/auth/config-test-auth-hashed.php
+          - tests/data/htaccess/test*
+
+          - Thumbs.db
+          - Desktop.ini
+          - .DS_Store
+          - /nbproject/
+          - .idea
