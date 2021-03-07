@@ -54,11 +54,19 @@ jobs:
           - .editorconfig
           - .gitattributes
           - user/*
+          - user/languages/
+          - user/pages/
+          - user/plugins/
           - !user/plugins/hyphens-in-urls/
           - !user/plugins/random-bg/
           - !user/plugins/random-shorturls/
           - !user/index.html
           - !user/**/index.html
+          - tests/
+          - tests/yourls-tests-config.php
+          - tests/vendor/
+          - tests/data/auth/config-test-auth-hashed.php
+          - tests/data/htaccess/test*
           - LICENSE
           - composer.json
           - composer.lock
@@ -72,10 +80,6 @@ jobs:
           - build/
           - coverage/
           - phpunit.xml
-          - tests/yourls-tests-config.php
-          - tests/vendor/
-          - tests/data/auth/config-test-auth-hashed.php
-          - tests/data/htaccess/test*
           - Thumbs.db
           - Desktop.ini
           - .DS_Store
