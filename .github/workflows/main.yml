@@ -1,7 +1,5 @@
 # https://github.com/marketplace/actions/ftp-deploy
-# 21.01.2021
-# This is a basic workflow to help you get started with Actions
-
+# 13.03.2021
 
 name: 🚀 Deploy website on push
 
@@ -24,10 +22,10 @@ jobs:
     steps:
     - name: 🚚 Get latest code
       uses: actions/checkout@v2.3.2
-      with:
-          fetch-depth: 100
-        # get the last XXX commits from history
-        # Make sure this number is AT LEAST 2, that's because we need to see what has changed.
+      #with:
+          #fetch-depth: 100
+          # get the last XXX commits from history
+          # Make sure this number is AT LEAST 2, that's because we need to see what has changed.
     
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@4.0.0
@@ -42,8 +40,6 @@ jobs:
          - .gitignore
           - */.gitignore
           - */.gitkeep
-          - .git-ftp-ignore
-          - .git-ftp-include
           - .gitlab-ci.yml
           - readme.md
           - *.md
