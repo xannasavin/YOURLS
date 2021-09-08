@@ -276,7 +276,30 @@ function yourls_no_cache_headers() {
 }
 
 /**
- * Send a filerable content type header
+ * Send header to prevent display within a frame from another site (avoid clickjacking)
+ *
+ * This header makes it impossible for an external site to display YOURLS admin within a frame,
+ * which allows for clickjacking.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+ * This said, the whole function is shuntable : legit uses of iframes should be still possible.
+ *
+ * @since 1.8.1
+ * @return void|mixed
+ */
+function yourls_no_frame_header() {
+    // Allow plugins to short-circuit the whole function
+    $pre = yourls_apply_filter( 'shunt_no_frame_header', false );
+    if ( false !== $pre ) {
+        return $pre;
+    }
+
+    if( !headers_sent() ) {
+        header( 'X-Frame-Options: SAMEORIGIN' );
+    }
+}
+
+/**
+ * Send a filterable content type header
  *
  * @since 1.7
  * @param string $type content type ('text/html', 'application/json', ...)
@@ -523,7 +546,8 @@ function yourls_allow_duplicate_longurls() {
     if ( yourls_is_API() && isset( $_REQUEST[ 'source' ] ) && $_REQUEST[ 'source' ] == 'plugin' ) {
             return false;
     }
-    return defined( 'YOURLS_UNIQUE_URLS' ) && !YOURLS_UNIQUE_URLS;
+
+    return yourls_apply_filter('allow_duplicate_longurls', defined('YOURLS_UNIQUE_URLS') && !YOURLS_UNIQUE_URLS);
 }
 
 /**
@@ -749,6 +773,11 @@ function yourls_is_ssl() {
             $is_ssl = true;
         }
         if ( '1' == $_SERVER[ 'HTTPS' ] ) {
+            $is_ssl = true;
+        }
+    }
+    elseif ( isset( $_SERVER[ 'HTTP_X_FORWARDED_PROTO' ] ) ) {
+        if ( 'https' == strtolower( $_SERVER[ 'HTTP_X_FORWARDED_PROTO' ] ) ) {
             $is_ssl = true;
         }
     }
