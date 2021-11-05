@@ -10,9 +10,9 @@ jobs:
     name: Docker image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.5
+      - uses: actions/checkout@v2.4.0
         with:
-          repository: YOURLS/docker-yourls
+          repository: YOURLS/docker
           ref: main
 
       - name: Get the version
@@ -23,9 +23,35 @@ jobs:
         run: echo "${{ steps.get_version.outputs.VERSION }}" > yourls_version
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.10.1
+        uses: peter-evans/create-pull-request@v3.11.0
         with:
           token: ${{ secrets.PAT }}
           commit-message: Bump YOURLS to ${{ steps.get_version.outputs.VERSION }}
           title: Bump YOURLS to ${{ steps.get_version.outputs.VERSION }}
           delete-branch: true
+
+  charts:
+    name: Helm charts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+        with:
+          repository: YOURLS/charts
+          ref: main
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Set published version
+        run: |
+          sed -i "s/appVersion:.*/appVersion: \"${{ steps.get_version.outputs.VERSION }}\"/" charts/yourls/Chart.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3.11.0
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: Bump YOURLS to ${{ steps.get_version.outputs.VERSION }}
+          title: Bump YOURLS to ${{ steps.get_version.outputs.VERSION }}
+          delete-branch: true
+          draft: true
