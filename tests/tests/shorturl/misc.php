@@ -25,7 +25,7 @@ class ShortURL_Misc_Tests extends PHPUnit\Framework\TestCase {
     }
 
     public function test_url_exists() {
-        $exists = yourls_long_url_exists( 'http://ozh.org/' );
+        $exists = yourls_long_url_exists( 'https://ozh.org/' );
         $this->assertEquals( 'ozh', $exists->keyword );
         $this->assertNull( yourls_long_url_exists( rand_str() ) );
     }
@@ -34,6 +34,11 @@ class ShortURL_Misc_Tests extends PHPUnit\Framework\TestCase {
         $rand = rand_str();
         $this->assertEquals( 0, yourls_update_clicks( $rand ) );
         $this->assertEquals( 0, yourls_get_keyword_clicks( $rand ) );
+    }
+
+    public function test_get_shorturl_charset() {
+        $this->assertIsString(yourls_get_shorturl_charset());
+        $this->assertNotEmpty(yourls_get_shorturl_charset());
     }
 
 }
