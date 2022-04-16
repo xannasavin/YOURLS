@@ -369,6 +369,8 @@ function yourls_html_tfooter( $params = array() ) {
  * @return string HTML content of the select element
  */
 function yourls_html_select( $name, $options, $selected = '', $display = false, $label = '' ) {
+    // Allow plugins to filter the options -- see #3262
+    $options = yourls_apply_filter( 'html_select_options', $options, $name, $selected, $display, $label );
 	$html = "<select aria-label='$label' name='$name' id='$name' size='1'>\n";
 	foreach( $options as $value => $text ) {
 		$html .= "<option value='$value' ";
@@ -750,7 +752,11 @@ function yourls_html_menu() {
 
 	// Build menu links
 	if( defined( 'YOURLS_USER' ) ) {
-		$logout_link = yourls_apply_filter( 'logout_link', sprintf( yourls__('Hello <strong>%s</strong>'), YOURLS_USER ) . ' (<a href="' . yourls_admin_url( 'index.php' ) . '?action=logout" title="' . yourls_esc_attr__( 'Logout' ) . '">' . yourls__( 'Logout' ) . '</a>)' );
+	    // Create a logout link with a nonce associated to fake user 'logout' : the user is not yet defined
+	    // when the logout check is done -- see yourls_is_valid_user()
+	    $logout_url = yourls_nonce_url( 'admin_logout',
+		yourls_add_query_arg(['action' => 'logout'], yourls_admin_url('index.php')), 'nonce', 'logout');
+		$logout_link = yourls_apply_filter('logout_link', sprintf( yourls__('Hello <strong>%s</strong>'), YOURLS_USER ) . ' (<a href="' . $logout_url . '" title="' . yourls_esc_attr__( 'Logout' ) . '">' . yourls__( 'Logout' ) . '</a>)' );
 	} else {
 		$logout_link = yourls_apply_filter( 'logout_link', '' );
 	}
