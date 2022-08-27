@@ -7,15 +7,18 @@
 /**
  * Convert an integer (1337) to a string (3jk).
  *
+ * @param int $num       Number to convert
+ * @param string $chars  Characters to use for conversion
+ * @return string        Converted number
  */
-function yourls_int2string( $num, $chars = null ) {
+function yourls_int2string($num, $chars = null) {
 	if( $chars == null )
 		$chars = yourls_get_shorturl_charset();
 	$string = '';
 	$len = strlen( $chars );
 	while( $num >= $len ) {
-		$mod = bcmod( $num, $len );
-		$num = bcdiv( $num, $len );
+		$mod = bcmod( (string)$num, (string)$len );
+		$num = bcdiv( (string)$num, (string)$len );
 		$string = $chars[ $mod ] . $string;
 	}
 	$string = $chars[ intval( $num ) ] . $string;
@@ -26,8 +29,11 @@ function yourls_int2string( $num, $chars = null ) {
 /**
  * Convert a string (3jk) to an integer (1337)
  *
+ * @param string $string  String to convert
+ * @param string $chars   Characters to use for conversion
+ * @return string         Number (as a string)
  */
-function yourls_string2int( $string, $chars = null ) {
+function yourls_string2int($string, $chars = null) {
 	if( $chars == null )
 		$chars = yourls_get_shorturl_charset();
 	$integer = 0;
@@ -36,7 +42,7 @@ function yourls_string2int( $string, $chars = null ) {
 	$inputlen = strlen( $string );
 	for ($i = 0; $i < $inputlen; $i++) {
 		$index = strpos( $chars, $string[$i] );
-		$integer = bcadd( $integer, bcmul( $index, bcpow( $baselen, $i ) ) );
+		$integer = bcadd( (string)$integer, bcmul( (string)$index, bcpow( (string)$baselen, (string)$i ) ) );
 	}
 
 	return yourls_apply_filter( 'string2int', $integer, $string, $chars );
@@ -48,7 +54,6 @@ function yourls_string2int( $string, $chars = null ) {
  * @since   1.8.3
  * @param  string $prefix   Optional prefix
  * @return string           The unique string
- *
  */
 function yourls_unique_element_id($prefix = 'yid') {
     static $id_counter = 0;
@@ -139,8 +144,11 @@ function yourls_sanitize_url_safe( $unsafe_url, $protocols = array() ) {
  *
  * Stolen from WP's _deep_replace
  *
+ * @param string|array $search   Needle, or array of needles.
+ * @param string       $subject  Haystack.
+ * @return string                The string with the replaced values.
  */
-function yourls_deep_replace( $search, $subject ){
+function yourls_deep_replace($search, $subject ){
 	$found = true;
 	while($found) {
 		$found = false;
@@ -158,24 +166,31 @@ function yourls_deep_replace( $search, $subject ){
 /**
  * Make sure an integer is a valid integer (PHP's intval() limits to too small numbers)
  *
+ * @param int $int  Integer to check
+ * @return string   Integer as a string
  */
-function yourls_sanitize_int( $int ) {
+function yourls_sanitize_int($int ) {
 	return ( substr( preg_replace( '/[^0-9]/', '', strval( $int ) ), 0, 20 ) );
 }
 
 /**
  * Sanitize an IP address
+ * No check on validity, just return a sanitized string
  *
+ * @param string $ip  IP address
+ * @return string     IP address
  */
-function yourls_sanitize_ip( $ip ) {
+function yourls_sanitize_ip($ip ) {
 	return preg_replace( '/[^0-9a-fA-F:., ]/', '', $ip );
 }
 
 /**
  * Make sure a date is m(m)/d(d)/yyyy, return false otherwise
  *
+ * @param string $date  Date to check
+ * @return false|mixed  Date in format m(m)/d(d)/yyyy or false if invalid
  */
-function yourls_sanitize_date( $date ) {
+function yourls_sanitize_date($date ) {
 	if( !preg_match( '!^\d{1,2}/\d{1,2}/\d{4}$!' , $date ) ) {
 		return false;
 	}
@@ -185,18 +200,24 @@ function yourls_sanitize_date( $date ) {
 /**
  * Sanitize a date for SQL search. Return false if malformed input.
  *
+ * @param string $date   Date
+ * @return false|string  String in Y-m-d format for SQL search or false if malformed input
  */
-function yourls_sanitize_date_for_sql( $date ) {
+function yourls_sanitize_date_for_sql($date) {
 	if( !yourls_sanitize_date( $date ) )
 		return false;
 	return date( 'Y-m-d', strtotime( $date ) );
 }
 
 /**
- * Return trimmed string
+ * Return trimmed string, optionally append '[...]' if string is too long
  *
+ * @param string $string  String to trim
+ * @param int $length     Maximum length of string
+ * @param string $append  String to append if trimmed
+ * @return string         Trimmed string
  */
-function yourls_trim_long_string( $string, $length = 60, $append = '[...]' ) {
+function yourls_trim_long_string($string, $length = 60, $append = '[...]') {
 	$newstring = $string;
     if ( mb_strlen( $newstring ) > $length ) {
         $newstring = mb_substr( $newstring, 0, $length - mb_strlen( $append ), 'UTF-8' ) . $append;
@@ -225,8 +246,10 @@ function yourls_sanitize_version( $version ) {
 /**
  * Sanitize a filename (no Win32 stuff)
  *
+ * @param string $file  File name
+ * @return string|null  Sanitized file name (or null if it's just backslashes, ok...)
  */
-function yourls_sanitize_filename( $file ) {
+function yourls_sanitize_filename($file) {
 	$file = str_replace( '\\', '/', $file ); // sanitize for Win32 installs
 	$file = preg_replace( '|/+|' ,'/', $file ); // remove any duplicate slash
 	return $file;
@@ -235,8 +258,10 @@ function yourls_sanitize_filename( $file ) {
 /**
  * Check if a string seems to be UTF-8. Stolen from WP.
  *
+ * @param string $str  String to check
+ * @return bool        Whether string seems valid UTF-8
  */
-function yourls_seems_utf8( $str ) {
+function yourls_seems_utf8($str) {
 	$length = strlen( $str );
 	for ( $i=0; $i < $length; $i++ ) {
 		$c = ord( $str[ $i ] );
@@ -416,6 +441,8 @@ function yourls_specialchars_decode( $string, $quote_style = ENT_NOQUOTES ) {
 	$double_preg = array( '/&#0*34;/'  => '&#034;', '/&#x0*22;/i' => '&#x22;' );
 	$others = array( '&lt;'   => '<', '&#060;'  => '<', '&gt;'   => '>', '&#062;'  => '>', '&amp;'  => '&', '&#038;'  => '&', '&#x26;' => '&' );
 	$others_preg = array( '/&#0*60;/'  => '&#060;', '/&#0*62;/'  => '&#062;', '/&#0*38;/'  => '&#038;', '/&#x0*26;/i' => '&#x26;' );
+
+    $translation = $translation_preg = [];
 
 	if ( $quote_style === ENT_QUOTES ) {
 		$translation = array_merge( $single, $double, $others );
@@ -654,40 +681,16 @@ function yourls_esc_textarea( $text ) {
 	return yourls_apply_filter( 'esc_textarea', $safe_text, $text );
 }
 
-
-/**
-* PHP emulation of JS's encodeURI
-*
-* @link https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/encodeURI
-* @param $url
-* @return string
-*/
-function yourls_encodeURI( $url ) {
-	// Decode URL all the way
-	$result = yourls_rawurldecode_while_encoded( $url );
-	// Encode once
-	$result = strtr( rawurlencode( $result ), array (
-        '%3B' => ';', '%2C' => ',', '%2F' => '/', '%3F' => '?', '%3A' => ':', '%40' => '@',
-		'%26' => '&', '%3D' => '=', '%2B' => '+', '%24' => '$', '%21' => '!', '%2A' => '*',
-		'%27' => '\'', '%28' => '(', '%29' => ')', '%23' => '#',
-    ) );
-	// @TODO:
-	// Known limit: this will most likely break IDN URLs such as http://www.académie-française.fr/
-	// To fully support IDN URLs, advocate use of a plugin.
-	return yourls_apply_filter( 'encodeURI', $result, $url );
-}
-
 /**
  * Adds backslashes before letters and before a number at the start of a string. Stolen from WP.
  *
  * @since 1.6
- *
  * @param string $string Value to which backslashes will be added.
  * @return string String with backslashes inserted.
  */
 function yourls_backslashit($string) {
-    $string = preg_replace('/^([0-9])/', '\\\\\\\\\1', $string);
-    $string = preg_replace('/([a-z])/i', '\\\\\1', $string);
+    $string = preg_replace('/^([0-9])/', '\\\\\\\\\1', (string)$string);
+    $string = preg_replace('/([a-z])/i', '\\\\\1', (string)$string);
     return $string;
 }
 
@@ -745,7 +748,7 @@ function yourls_make_bookmarklet( $code ) {
  */
 function yourls_get_timestamp( $timestamp ) {
     $offset = yourls_get_time_offset();
-    $timestamp_offset = $timestamp + ($offset * 3600);
+    $timestamp_offset = (int)$timestamp + ($offset * 3600);
 
     return yourls_apply_filter( 'get_timestamp', $timestamp_offset, $timestamp, $offset );
 }
@@ -793,4 +796,3 @@ function yourls_get_date_format( $format ) {
 function yourls_get_time_format( $format ) {
     return yourls_apply_filter( 'get_time_format', (string)$format );
 }
-

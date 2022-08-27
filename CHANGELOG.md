@@ -4,6 +4,28 @@ YOURLS Changelog
 _This file lists the main changes through all versions of YOURLS.  
 For a much more detailed list, simply refer to [commit messages](https://github.com/YOURLS/YOURLS/commits/master)._
 
+1.9.1
+---
+- fixed: error `Undefined constant "intval"` when upgrading (#3332)
+- fixed: warnings on PHP 8.1 (#3317)
+- fixed: incorrect HTTP status header with the API when shortening a duplicate (#3355)
+- fixed: no hyphen in random keywords (#3353)
+- added: required/suggested PHP extensions in composer.json (#3339)
+- updated: third party libs and binaries
+
+1.9
+---
+- removed : support for PHP prior to 7.4
+- improved: the API plugin with more plugin functions (#3281), a sandbox and a plugin uninstall procedure (#3282)
+- improved: inline documentation, [online documentation](https://docs.yourls.org/) and unit tests
+- improved: concurrency during mass shortening (#3233)
+- improved: minor security fixes - sanitize step name during upgrade (#3055),
+    nonce on the logout link (#3264), salt cookie with newer hash (#3278)
+- improved: Remove ozh/phpass library and use native PHP password_* functions (#3232)
+- added: more hooks in the admin view & search (#3265)
+- fixed: incorrect notice when "prefix and shorten" while not logged in (#3189)
+- fixed: UI sometimes not responsive after editing a URL (#3244)
+
 1.8.2
 ---
 - fixed: display SVG logo for IE 11 (#2864)
@@ -35,8 +57,8 @@ For a much more detailed list, simply refer to [commit messages](https://github.
 1.7.9
 ---
 - improved: compatibility of YOURLS with proxies and reversed proxies
-- improved: accept timestamped signature in API requests with [arbitrary hash](https://github.com/YOURLS/YOURLS/wiki/PasswordlessAPI#use-other-hash-algorithms-than-md5)
-- improved: YOURLS pages are now located in `user/` and [documented](https://github.com/YOURLS/YOURLS/wiki/Pages)
+- improved: accept timestamped signature in API requests with [arbitrary hash](https://docs.yourls.org/guide/advanced/passwordless-api.html#use-other-hash-algorithms-than-md5)
+- improved: YOURLS pages are now located in `user/` and [documented](https://docs.yourls.org/guide/extend/pages.html)
 - improved: accessibility, with labels and aria tags in the main admin screen
 - fixed: various little things here and also there
 
@@ -76,7 +98,7 @@ For a much more detailed list, simply refer to [commit messages](https://github.
 1.7.1
 ---
 - added: compatibility with PHP 7
-- added: allow hooks with closures (see [Advanced Hook Syntax](https://github.com/YOURLS/YOURLS/wiki/Advanced-Hook-Syntax))
+- added: allow hooks with closures (see [Advanced Hook Syntax](https://docs.yourls.org/development/hooks.html))
 - improved: you can now search across all fields at once in the admin interface
 - improved: bookmarklets are now human readable in the PHP source, and minified on the fly
 - improved, still not perfect: support for URLs and page titles with encoded chars

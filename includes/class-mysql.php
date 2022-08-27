@@ -4,6 +4,7 @@
  * Connect to DB
  *
  * @since 1.0
+ * @return \YOURLS\Database\YDB
  */
 function yourls_db_connect() {
     global $ydb;
@@ -101,6 +102,7 @@ function yourls_get_db() {
  *
  * @since 1.7.10
  * @param  mixed $db    Either a \YOURLS\Database\YDB instance, or anything. If null, the function will unset $ydb
+ * @return void
  */
 function yourls_set_db($db) {
     global $ydb;

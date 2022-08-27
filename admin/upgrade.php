@@ -2,8 +2,6 @@
 define( 'YOURLS_ADMIN', true );
 define( 'YOURLS_UPGRADING', true );
 require_once( dirname( __DIR__ ).'/includes/load-yourls.php' );
-require_once( YOURLS_INC.'/functions-upgrade.php' );
-require_once( YOURLS_INC.'/functions-install.php' );
 yourls_maybe_require_auth();
 
 yourls_html_head( 'upgrade', yourls__( 'Upgrade YOURLS' ) );
@@ -29,7 +27,7 @@ if ( !yourls_upgrade_is_needed() ) {
 	// From what are we upgrading?
 	if ( isset( $_GET['oldver'] ) && isset( $_GET['oldsql'] ) ) {
 		$oldver = yourls_sanitize_version($_GET['oldver']);
-		$oldsql = (intval)($_GET['oldsql']);
+		$oldsql = intval($_GET['oldsql']);
 	} else {
 		list( $oldver, $oldsql ) = yourls_get_current_version_from_sql();
 	}

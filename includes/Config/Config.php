@@ -11,20 +11,20 @@ use YOURLS\Exceptions\ConfigException;
 class Config {
 
     /**
-     * @param string
+     * @var string
      */
     protected $root;
 
     /**
-     * @param mixed
+     * @var string
      */
     protected $config;
 
     /**
      * @since  1.7.3
-     * @param  mixed $config   Optional user defined config path
+     * @param  string $config   Optional user defined config path
      */
-    public function __construct($config = false) {
+    public function __construct($config = '') {
         $this->set_root( $this->fix_win32_path( dirname( dirname( __DIR__ ) ) ) );
         $this->set_config($config);
     }
@@ -42,7 +42,7 @@ class Config {
 
     /**
      * @since  1.7.3
-     * @param  string  path to config file
+     * @param  string $config   path to config file
      * @return void
      */
     public function set_config($config) {
@@ -51,7 +51,7 @@ class Config {
 
     /**
      * @since  1.7.3
-     * @param  string  path to YOURLS root directory
+     * @param  string $root   path to YOURLS root directory
      * @return void
      */
     public function set_root($root) {

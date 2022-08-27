@@ -7,8 +7,14 @@
  * rather than using the YOURLS version number, eg yourls_update_to_18(). This is to allow having
  * multiple SQL update during the dev cycle of the same Y0URLS version
  *
+ * @param string|int $step
+ * @param string $oldver
+ * @param string $newver
+ * @param string|int $oldsql
+ * @param string|int $newsql
+ * @return void
  */
-function yourls_upgrade( $step, $oldver, $newver, $oldsql, $newsql ) {
+function yourls_upgrade($step, $oldver, $newver, $oldsql, $newsql ) {
 
     /**
      *  Sanitize input. Two notes :
@@ -206,8 +212,8 @@ function yourls_upgrade_to_143( ) {
  */
 function yourls_upgrade_to_141( ) {
 	// Kill old cookies from 1.3 and prior
-	setcookie('yourls_username', null, time() - 3600 );
-	setcookie('yourls_password', null, time() - 3600 );
+	setcookie('yourls_username', '', time() - 3600 );
+	setcookie('yourls_password', '', time() - 3600 );
 	// alter table URL
 	yourls_alter_url_table_to_141();
 	// recreate the htaccess file if needed
@@ -445,4 +451,3 @@ function yourls_clean_htaccess_for_14() {
 
 	return $result;
 }
-

@@ -6,7 +6,8 @@
 
 /**
  * Make an optimized regexp pattern from a string of characters
- * @param $string
+ *
+ * @param string $string
  * @return string
  */
 function yourls_make_regexp_pattern( $string ) {
@@ -16,7 +17,8 @@ function yourls_make_regexp_pattern( $string ) {
 }
 
 /**
- * Function: Get client IP Address. Returns a DB safe string.
+ * Get client IP Address. Returns a DB safe string.
+ *
  * @return string
  */
 function yourls_get_IP() {
@@ -52,17 +54,17 @@ function yourls_get_next_decimal() {
  * Update id for next link with no custom keyword
  *
  * Note: this function relies upon yourls_update_option(), which will return either true or false
- * depending if there has been an actual MySQL query updating the DB.
+ * depending upon if there has been an actual MySQL query updating the DB.
  * In other words, this function may return false yet this would not mean it has functionally failed
- * In other words I'm not sure we really need this function to return something :face_with_eyes_looking_up:
+ * In other words I'm not sure if we really need this function to return something :face_with_eyes_looking_up:
  * See issue 2621 for more on this.
  *
  * @since 1.0
- * @param integer $int     id for next link
- * @return bool            true or false depending on if there has been an actual MySQL query. See note above.
+ * @param integer $int id for next link
+ * @return bool        true or false depending on if there has been an actual MySQL query. See note above.
  */
-function yourls_update_next_decimal( $int = '' ) {
-	$int = ( $int == '' ) ? yourls_get_next_decimal() + 1 : (int)$int ;
+function yourls_update_next_decimal( $int = 0 ) {
+	$int = ( $int == 0 ) ? yourls_get_next_decimal() + 1 : (int)$int ;
 	$update = yourls_update_option( 'next_id', $int );
 	yourls_do_action( 'update_next_decimal', $int, $update );
 	return $update;
@@ -70,18 +72,20 @@ function yourls_update_next_decimal( $int = '' ) {
 
 /**
  * Return XML output.
+ *
  * @param array $array
  * @return string
  */
 function yourls_xml_encode( $array ) {
-    return (\Spatie\ArrayToXml\ArrayToXml::convert($array));
+    return (\Spatie\ArrayToXml\ArrayToXml::convert($array, '', true, 'UTF-8'));
 }
 
 /**
  * Update click count on a short URL. Return 0/1 for error/success.
+ *
  * @param string $keyword
- * @param bool   $clicks
- * @return mixed|string
+ * @param false|int $clicks
+ * @return int 0 or 1 for error/success
  */
 function yourls_update_clicks( $keyword, $clicks = false ) {
 	// Allow plugins to short-circuit the whole function
@@ -112,11 +116,16 @@ function yourls_update_clicks( $keyword, $clicks = false ) {
 	return $result;
 }
 
+
 /**
  * Return array of stats. (string)$filter is 'bottom', 'last', 'rand' or 'top'. (int)$limit is the number of links to return
  *
+ * @param string $filter  'bottom', 'last', 'rand' or 'top'
+ * @param int $limit      Number of links to return
+ * @param int $start      Offset to start from
+ * @return array          Array of links
  */
-function yourls_get_stats( $filter = 'top', $limit = 10, $start = 0 ) {
+function yourls_get_stats($filter = 'top', $limit = 10, $start = 0) {
 	switch( $filter ) {
 		case 'bottom':
 			$sort_by    = '`clicks`';
@@ -175,7 +184,7 @@ function yourls_get_stats( $filter = 'top', $limit = 10, $start = 0 ) {
  *   $where['sql'] will concatenate SQL clauses: $where['sql'] = ' AND something = :value AND otherthing < :othervalue';
  *   $where['binds'] will hold the (name => value) placeholder pairs: $where['binds'] = array('value' => $value, 'othervalue' => $value2)
  *
- * @param  $where array  See comment above
+ * @param  array $where See comment above
  * @return array
  */
 function yourls_get_db_stats( $where = [ 'sql' => '', 'binds' => [] ] ) {
@@ -190,6 +199,7 @@ function yourls_get_db_stats( $where = [ 'sql' => '', 'binds' => [] ] ) {
 /**
  * Returns a sanitized a user agent string. Given what I found on http://www.user-agents.org/ it should be OK.
  *
+ * @return string
  */
 function yourls_get_user_agent() {
     $ua = '-';
@@ -260,6 +270,7 @@ function yourls_redirect( $location, $code = 301 ) {
  * @since  1.7.3
  * @param  string $url
  * @param  string $keyword
+ * @return void
  */
 function yourls_redirect_shorturl($url, $keyword) {
     yourls_do_action( 'redirect_shorturl', $url, $keyword );
@@ -364,6 +375,7 @@ function yourls_status_header( $code = 200 ) {
  *
  * @param string $location
  * @param bool   $dontwait
+ * @return void
  */
 function yourls_redirect_javascript( $location, $dontwait = true ) {
     yourls_do_action( 'pre_redirect_javascript', $location, $dontwait );
@@ -385,6 +397,7 @@ REDIR;
 
 /**
  * Return an HTTP status code
+ *
  * @param int $code
  * @return string
  */
@@ -448,7 +461,7 @@ function yourls_get_HTTP_status( $code ) {
 		510 => 'Not Extended'
     ];
 
-    return isset( $headers_desc[ $code ] ) ? $headers_desc[ $code ] : '';
+    return $headers_desc[$code] ?? '';
 }
 
 /**
@@ -496,6 +509,7 @@ function yourls_log_redirect( $keyword ) {
 /**
  * Check if we want to not log redirects (for stats)
  *
+ * @return bool
  */
 function yourls_do_log_redirect() {
 	return ( !defined( 'YOURLS_NOSTATS' ) || YOURLS_NOSTATS != true );
@@ -503,6 +517,7 @@ function yourls_do_log_redirect() {
 
 /**
  * Check if an upgrade is needed
+ *
  * @return bool
  */
 function yourls_upgrade_is_needed() {
@@ -522,6 +537,7 @@ function yourls_upgrade_is_needed() {
 
 /**
  * Get current version & db version as stored in the options DB. Prior to 1.4 there's no option table.
+ *
  * @return array
  */
 function yourls_get_current_version_from_sql() {
@@ -542,6 +558,7 @@ function yourls_get_current_version_from_sql() {
 /**
  * Determine if the current page is private
  *
+ * @return bool
  */
 function yourls_is_private() {
     $private = defined( 'YOURLS_PRIVATE' ) && YOURLS_PRIVATE;
@@ -566,6 +583,7 @@ function yourls_is_private() {
 
 /**
  * Allow several short URLs for the same long URL ?
+ *
  * @return bool
  */
 function yourls_allow_duplicate_longurls() {
@@ -579,6 +597,7 @@ function yourls_allow_duplicate_longurls() {
 
 /**
  * Check if an IP shortens URL too fast to prevent DB flood. Return true, or die.
+ *
  * @param string $ip
  * @return bool|mixed|string
  */
@@ -735,6 +754,7 @@ function yourls_rnd_string ( $length = 5, $type = 0, $charlist = '' ) {
 
 /**
  * Check if we're in API mode.
+ *
  * @return bool
  */
 function yourls_is_API() {
@@ -743,6 +763,7 @@ function yourls_is_API() {
 
 /**
  * Check if we're in Ajax mode.
+ *
  * @return bool
  */
 function yourls_is_Ajax() {
@@ -751,6 +772,7 @@ function yourls_is_Ajax() {
 
 /**
  * Check if we're in GO mode (yourls-go.php).
+ *
  * @return bool
  */
 function yourls_is_GO() {
@@ -760,14 +782,16 @@ function yourls_is_GO() {
 /**
  * Check if we're displaying stats infos (yourls-infos.php). Returns bool
  *
+ * @return bool
  */
 function yourls_is_infos() {
     return (bool)yourls_apply_filter( 'is_infos', defined( 'YOURLS_INFOS' ) && YOURLS_INFOS );
 }
 
 /**
- * Check if we're in the admin area. Returns bool
+ * Check if we're in the admin area. Returns bool. Does not relate with user rights.
  *
+ * @return bool
  */
 function yourls_is_admin() {
     return (bool)yourls_apply_filter( 'is_admin', defined( 'YOURLS_ADMIN' ) && YOURLS_ADMIN );
@@ -776,6 +800,7 @@ function yourls_is_admin() {
 /**
  * Check if the server seems to be running on Windows. Not exactly sure how reliable this is.
  *
+ * @return bool
  */
 function yourls_is_windows() {
 	return defined( 'DIRECTORY_SEPARATOR' ) && DIRECTORY_SEPARATOR == '\\';
@@ -783,6 +808,7 @@ function yourls_is_windows() {
 
 /**
  * Check if SSL is required.
+ *
  * @return bool
  */
 function yourls_needs_ssl() {
@@ -791,6 +817,7 @@ function yourls_needs_ssl() {
 
 /**
  * Check if SSL is used. Stolen from WP.
+ *
  * @return bool
  */
 function yourls_is_ssl() {
@@ -902,6 +929,7 @@ function yourls_get_remote_title( $url ) {
 
 /**
  * Quick UA check for mobile devices.
+ *
  * @return bool
  */
 function yourls_is_mobile_device() {
@@ -935,7 +963,7 @@ function yourls_is_mobile_device() {
  * @param string $uri           Optional, page requested (default to $_SERVER['REQUEST_URI'] eg '/yourls/abcd' )
  * @return string               request relative to YOURLS base (eg 'abdc')
  */
-function yourls_get_request($yourls_site = false, $uri = false) {
+function yourls_get_request($yourls_site = '', $uri = '') {
     // Allow plugins to short-circuit the whole function
     $pre = yourls_apply_filter( 'shunt_get_request', false );
     if ( false !== $pre ) {
@@ -945,10 +973,10 @@ function yourls_get_request($yourls_site = false, $uri = false) {
     yourls_do_action( 'pre_get_request', $yourls_site, $uri );
 
     // Default values
-    if ( false === $yourls_site ) {
+    if ( '' === $yourls_site ) {
         $yourls_site = yourls_get_yourls_site();
     }
-    if ( false === $uri ) {
+    if ( '' === $uri ) {
         $uri = $_SERVER[ 'REQUEST_URI' ];
     }
 
@@ -986,6 +1014,7 @@ function yourls_get_request($yourls_site = false, $uri = false) {
 /**
  * Fix $_SERVER['REQUEST_URI'] variable for various setups. Stolen from WP.
  *
+ * @return void
  */
 function yourls_fix_request_uri() {
 
@@ -1033,19 +1062,21 @@ function yourls_fix_request_uri() {
 /**
  * Check for maintenance mode. If yes, die. See yourls_maintenance_mode(). Stolen from WP.
  *
+ * @return void
  */
 function yourls_check_maintenance_mode() {
-
 	$file = YOURLS_ABSPATH . '/.maintenance' ;
-	if ( !file_exists( $file ) || yourls_is_upgrading() || yourls_is_installing() )
-		return;
+
+    if ( !file_exists( $file ) || yourls_is_upgrading() || yourls_is_installing() ) {
+        return;
+    }
 
 	global $maintenance_start;
-
 	include_once( $file );
 	// If the $maintenance_start timestamp is older than 10 minutes, don't die.
-	if ( ( time() - $maintenance_start ) >= 600 )
-		return;
+	if ( ( time() - $maintenance_start ) >= 600 ) {
+        return;
+    }
 
 	// Use any /user/maintenance.php file
 	if( file_exists( YOURLS_USERDIR.'/maintenance.php' ) ) {
@@ -1053,29 +1084,11 @@ function yourls_check_maintenance_mode() {
 		die();
 	}
 
-	// https://www.youtube.com/watch?v=Xw-m4jEY-Ns
+    // Or use the default messages
 	$title   = yourls__( 'Service temporarily unavailable' );
 	$message = yourls__( 'Our service is currently undergoing scheduled maintenance.' ) . "</p>\n<p>" .
 	yourls__( 'Things should not last very long, thank you for your patience and please excuse the inconvenience' );
 	yourls_die( $message, $title , 503 );
-
-}
-
-/**
- * Return current admin page, or null if not an admin page
- *
- * @return mixed string if admin page, null if not an admin page
- * @since 1.6
- */
-function yourls_current_admin_page() {
-	if( yourls_is_admin() ) {
-		$current = substr( yourls_get_request(), 6 );
-		if( $current === false )
-			$current = 'index.php'; // if current page is http://sho.rt/admin/ instead of http://sho.rt/admin/index.php
-
-		return $current;
-	}
-	return null;
 }
 
 /**
@@ -1155,7 +1168,7 @@ function yourls_get_relative_url( $url, $strict = true ) {
 }
 
 /**
- * Marks a function as deprecated and informs when it has been used. Stolen from WP.
+ * Marks a function as deprecated and informs that it has been used. Stolen from WP.
  *
  * There is a hook deprecated_function that will be called that can be used
  * to get the backtrace up to what file and function called the deprecated
@@ -1174,6 +1187,7 @@ function yourls_get_relative_url( $url, $strict = true ) {
  * @param string $function The function that was called
  * @param string $version The version of WordPress that deprecated the function
  * @param string $replacement Optional. The function that should have been called
+ * @return void
  */
 function yourls_deprecated_function( $function, $version, $replacement = null ) {
 
@@ -1186,19 +1200,6 @@ function yourls_deprecated_function( $function, $version, $replacement = null ) 
 		else
 			trigger_error( sprintf( yourls__('%1$s is <strong>deprecated</strong> since version %2$s with no alternative available.'), $function, $version ) );
 	}
-}
-
-/**
- * Return the value if not an empty string
- *
- * Used with array_filter(), to remove empty keys but not keys with value 0 or false
- *
- * @since 1.6
- * @param mixed $val Value to test against ''
- * @return bool True if not an empty string
- */
-function yourls_return_if_not_empty_string( $val ) {
-    return ( $val !== '' );
 }
 
 /**
@@ -1243,14 +1244,14 @@ function yourls_get_protocol_slashes_and_rest( $url, $array = [ 'protocol', 'sla
 }
 
 /**
- * Set URL scheme (to HTTP or HTTPS)
+ * Set URL scheme (HTTP or HTTPS) to a URL
  *
  * @since 1.7.1
  * @param string $url    URL
  * @param string $scheme scheme, either 'http' or 'https'
  * @return string URL with chosen scheme
  */
-function yourls_set_url_scheme( $url, $scheme = false ) {
+function yourls_set_url_scheme( $url, $scheme = '' ) {
     if ( in_array( $scheme, [ 'http', 'https' ] ) ) {
         $url = preg_replace( '!^[a-zA-Z0-9+.-]+://!', $scheme.'://', $url );
     }
@@ -1260,12 +1261,13 @@ function yourls_set_url_scheme( $url, $scheme = false ) {
 /**
  * Tell if there is a new YOURLS version
  *
- * This function checks, if needed, if there's a new version of YOURLS and, if applicable, display
+ * This function checks, if needed, if there's a new version of YOURLS and, if applicable, displays
  * an update notice.
  *
  * @since 1.7.3
+ * @return void
  */
 function yourls_tell_if_new_version() {
     yourls_debug_log( 'Check for new version: '.( yourls_maybe_check_core_version() ? 'yes' : 'no' ) );
-    yourls_new_core_version_notice();
+    yourls_new_core_version_notice(YOURLS_VERSION);
 }

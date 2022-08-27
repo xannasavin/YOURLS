@@ -32,7 +32,7 @@ use POMO\Translations\NOOPTranslations;
  * @uses yourls_apply_filter() Calls 'get_locale' hook on locale value.
  * @uses $yourls_locale Gets the locale stored in the global.
  *
- * @return string The locale of the blog or from the 'get_locale' hook.
+ * @return string The locale of the YOURLS instance
  */
 function yourls_get_locale() {
 	global $yourls_locale;
@@ -116,8 +116,7 @@ function yourls__( $text, $domain = 'default' ) {
  * @see sprintf()
  * @since 1.6
  *
- * @param string $pattern Text to translate
- * @param string $arg1, $arg2... Optional: sprintf tokens, and translation domain
+ * @param mixed ...$pattern Text to translate, then $arg1: optional sprintf tokens, and $arg2: translation domain
  * @return string Translated text
  */
 function yourls_s( $pattern ) {
@@ -158,9 +157,8 @@ function yourls_s( $pattern ) {
  * @see sprintf()
  * @since 1.6
  *
- * @param string $pattern Text to translate
- * @param string $arg1, $arg2... Optional: sprintf tokens, and translation domain
- * @return string Translated text
+ * @param string ...$pattern Text to translate, then optional sprintf tokens, and optional translation domain
+ * @return void Translated text
  */
 function yourls_se( $pattern ) {
 	echo yourls_s( func_get_args() );
@@ -207,6 +205,7 @@ function yourls_esc_html__( $text, $domain = 'default' ) {
  *
  * @param string $text Text to translate
  * @param string $domain Optional. Domain to retrieve the translated text
+ * @return void
  */
 function yourls_e( $text, $domain = 'default' ) {
 	echo yourls_translate( $text, $domain );
@@ -221,6 +220,7 @@ function yourls_e( $text, $domain = 'default' ) {
  *
  * @param string $text Text to translate
  * @param string $domain Optional. Domain to retrieve the translated text
+ * @return void
  */
 function yourls_esc_attr_e( $text, $domain = 'default' ) {
 	echo yourls_esc_attr( yourls_translate( $text, $domain ) );
@@ -235,6 +235,7 @@ function yourls_esc_attr_e( $text, $domain = 'default' ) {
  *
  * @param string $text Text to translate
  * @param string $domain Optional. Domain to retrieve the translated text
+ * @return void
  */
 function yourls_esc_html_e( $text, $domain = 'default' ) {
 	echo yourls_esc_html( yourls_translate( $text, $domain ) );
@@ -269,7 +270,7 @@ function yourls_x( $text, $context, $domain = 'default' ) {
  * @param string $text Text to translate
  * @param string $context Context information for the translators
  * @param string $domain Optional. Domain to retrieve the translated text
- * @return string Translated context string
+ * @return void Echoes translated context string
  */
 function yourls_xe( $text, $context, $domain = 'default' ) {
 	echo yourls_x( $text, $context, $domain );
@@ -347,6 +348,12 @@ function yourls_n( $single, $plural, $number, $domain = 'default' ) {
  * @see yourls_n()
  * @see yourls_x()
  *
+ * @param string $single   The text that will be used if $number is 1
+ * @param string $plural   The text that will be used if $number is not 1
+ * @param int $number      The number to compare against to use either $single or $plural
+ * @param string $context  Context information for the translators
+ * @param string $domain   Optional. The domain identifier the text should be retrieved in
+ * @return string          Either $single or $plural translated text
  */
 function yourls_nx($single, $plural, $number, $context, $domain = 'default') {
 	$translations = yourls_get_translations_for_domain( $domain );
@@ -391,6 +398,12 @@ function yourls_n_noop( $singular, $plural, $domain = null ) {
  *
  * @since 1.6
  * @see yourls_n_noop()
+ *
+ * @param string $singular Single form to be i18ned
+ * @param string $plural   Plural form to be i18ned
+ * @param string $context  Context information for the translators
+ * @param string $domain   Optional. The domain identifier the text will be retrieved in
+ * @return array           array($singular, $plural)
  */
 function yourls_nx_noop( $singular, $plural, $context, $domain = null ) {
 	return array(
@@ -510,6 +523,8 @@ function yourls_load_default_textdomain() {
 
     if( !empty( $yourls_locale ) )
         return yourls_load_textdomain( 'default', YOURLS_LANG_DIR . "/$yourls_locale.mo" );
+
+    return false;
 }
 
 /**
@@ -548,6 +563,8 @@ function yourls_is_textdomain_loaded( $domain ) {
  * file and this function properly translates them back.
  *
  * @since 1.6
+ * @param string $name The role name
+ * @return string Translated role name
  */
 function yourls_translate_user_role( $name ) {
 	return yourls_translate_with_context( $name, 'User role' );
@@ -605,6 +622,9 @@ function yourls_number_format_i18n( $number, $decimals = 0 ) {
  * @return string                       The date, translated if locale specifies it.
  */
 function yourls_date_i18n( $dateformatstring, $timestamp = false ) {
+    /**
+     * @var YOURLS_Locale_Formats $yourls_locale_formats
+     */
 	global $yourls_locale_formats;
 	if( !isset( $yourls_locale_formats ) )
 		$yourls_locale_formats = new YOURLS_Locale_Formats();
@@ -743,6 +763,7 @@ class YOURLS_Locale_Formats {
 	 *
 	 * @since 1.6
 	 * @access private
+     * @return void
 	 */
 	function init() {
 		// The Weekdays
@@ -845,7 +866,7 @@ class YOURLS_Locale_Formats {
 	 * @since 1.6
 	 * @access public
 	 *
-	 * @param int $weekday_number 0 for Sunday through 6 Saturday
+	 * @param int|string $weekday_number 0 for Sunday through 6 Saturday
 	 * @return string Full translated weekday
 	 */
 	function get_weekday( $weekday_number ) {
@@ -945,6 +966,7 @@ class YOURLS_Locale_Formats {
 	 * @access private
 	 *
 	 * @since 1.6
+     * @return void
 	 */
 	function register_globals() {
 		$GLOBALS['weekday']         = $this->weekday;
