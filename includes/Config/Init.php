@@ -57,7 +57,7 @@ class Init {
             $this->include_db_files();
         }
 
-        // Allow early inclusion of a cache layer
+        // Allow early and unconditional inclusion of custom code
         if ($actions->include_cache === true) {
             $this->include_cache_files();
         }
@@ -145,22 +145,41 @@ class Init {
      * @return void
      */
     public function include_db_files() {
-        // Allow drop-in replacement for the DB engine
-        if (file_exists(YOURLS_USERDIR.'/db.php')) {
-            require_once YOURLS_USERDIR.'/db.php';
-        } else {
-            require_once YOURLS_INC.'/class-mysql.php';
+        // Attempt to open drop-in replacement for the DB engine else default to core engine
+        $file = YOURLS_USERDIR . '/db.php';
+        $attempt = false;
+        if(file_exists($file)) {
+            $attempt = yourls_include_file_sandbox( $file );
+            // Check if we have an error to display
+            if ( is_string( $attempt ) ) {
+                yourls_add_notice( $attempt );
+            }
+        }
+
+        // Fallback to core DB engine
+        if ( $attempt !== true ) {
+            require_once YOURLS_INC . '/class-mysql.php';
             yourls_db_connect();
         }
     }
 
     /**
+     * Include custom extension file.
+     *
+     * "Cache" stands for "Custom Additional Code for Hazardous Extensions".
+     *
      * @since  1.7.3
      * @return void
      */
     public function include_cache_files() {
-        if (file_exists(YOURLS_USERDIR.'/cache.php')) {
-            require_once YOURLS_USERDIR.'/cache.php';
+        $file = YOURLS_USERDIR . '/cache.php';
+        $attempt = false;
+        if(file_exists($file)) {
+            $attempt = yourls_include_file_sandbox($file);
+            // Check if we have an error to display
+            if (is_string($attempt)) {
+                yourls_add_notice($attempt);
+            }
         }
     }
 

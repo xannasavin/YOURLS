@@ -264,8 +264,7 @@ function yourls_redirect( $location, $code = 301 ) {
  * Redirect to an existing short URL
  *
  * Redirect client to an existing short URL (no check performed) and execute misc tasks: update
- * clicks for short URL, update logs, and send a nocache header to prevent bots indexing short
- * URLS (see #2202)
+ * clicks for short URL, update logs, and send an X-Robots-Tag header to control indexing of a page.
  *
  * @since  1.7.3
  * @param  string $url
@@ -281,13 +280,33 @@ function yourls_redirect_shorturl($url, $keyword) {
     // Update detailed log for stats
     yourls_log_redirect( $keyword );
 
-    // Tell (Google)bots not to index this short URL, see #2202
-    if ( !headers_sent() ) {
-        header( "X-Robots-Tag: noindex", true );
-    }
+    // Send an X-Robots-Tag header
+    yourls_robots_tag_header();
 
     yourls_redirect( $url, 301 );
 }
+
+/**
+ * Send an X-Robots-Tag header. See #3486
+ *
+ * @since 1.9.2
+ * @return void
+ */
+function yourls_robots_tag_header() {
+    // Allow plugins to short-circuit the whole function
+    $pre = yourls_apply_filter( 'shunt_robots_tag_header', false );
+    if ( false !== $pre ) {
+        return $pre;
+    }
+
+    // By default, we're sending a 'noindex' header
+    $tag = yourls_apply_filter( 'robots_tag_header', 'noindex' );
+    $replace = yourls_apply_filter( 'robots_tag_header_replace', true );
+    if ( !headers_sent() ) {
+        header( "X-Robots-Tag: $tag", $replace );
+    }
+}
+
 
 /**
  * Send headers to explicitly tell browser not to cache content or redirection
@@ -1014,6 +1033,10 @@ function yourls_get_request($yourls_site = '', $uri = '') {
 /**
  * Fix $_SERVER['REQUEST_URI'] variable for various setups. Stolen from WP.
  *
+ * We also strip $_COOKIE from $_REQUEST to allow our lazy using $_REQUEST without 3rd party cookie interfering.
+ * See #3383 for explanation.
+ *
+ * @since 1.5.1
  * @return void
  */
 function yourls_fix_request_uri() {
@@ -1023,6 +1046,9 @@ function yourls_fix_request_uri() {
         'REQUEST_URI'     => '',
     ];
     $_SERVER = array_merge( $default_server_values, $_SERVER );
+
+    // Make $_REQUEST with only $_GET and $_POST, not $_COOKIE. See #3383.
+    $_REQUEST = array_merge( $_GET, $_POST );
 
     // Fix for IIS when running with PHP ISAPI
     if ( empty( $_SERVER[ 'REQUEST_URI' ] ) || ( php_sapi_name() != 'cgi-fcgi' && preg_match( '/^Microsoft-IIS\//', $_SERVER[ 'SERVER_SOFTWARE' ] ) ) ) {
@@ -1065,30 +1091,32 @@ function yourls_fix_request_uri() {
  * @return void
  */
 function yourls_check_maintenance_mode() {
-	$file = YOURLS_ABSPATH . '/.maintenance' ;
+	$dot_file = YOURLS_ABSPATH . '/.maintenance' ;
 
-    if ( !file_exists( $file ) || yourls_is_upgrading() || yourls_is_installing() ) {
+    if ( !file_exists( $dot_file ) || yourls_is_upgrading() || yourls_is_installing() ) {
         return;
     }
 
 	global $maintenance_start;
-	include_once( $file );
+	yourls_include_file_sandbox( $dot_file );
 	// If the $maintenance_start timestamp is older than 10 minutes, don't die.
 	if ( ( time() - $maintenance_start ) >= 600 ) {
         return;
     }
 
 	// Use any /user/maintenance.php file
-	if( file_exists( YOURLS_USERDIR.'/maintenance.php' ) ) {
-		include_once( YOURLS_USERDIR.'/maintenance.php' );
-		die();
-	}
+    $file = YOURLS_USERDIR . '/maintenance.php';
+    if(file_exists($file)) {
+        if(yourls_include_file_sandbox( $file ) == true) {
+            die();
+        }
+    }
 
     // Or use the default messages
-	$title   = yourls__( 'Service temporarily unavailable' );
-	$message = yourls__( 'Our service is currently undergoing scheduled maintenance.' ) . "</p>\n<p>" .
-	yourls__( 'Things should not last very long, thank you for your patience and please excuse the inconvenience' );
-	yourls_die( $message, $title , 503 );
+    $title = yourls__('Service temporarily unavailable');
+    $message = yourls__('Our service is currently undergoing scheduled maintenance.') . "</p>\n<p>" .
+        yourls__('Things should not last very long, thank you for your patience and please excuse the inconvenience');
+    yourls_die( $message, $title, 503 );
 }
 
 /**
@@ -1270,4 +1298,27 @@ function yourls_set_url_scheme( $url, $scheme = '' ) {
 function yourls_tell_if_new_version() {
     yourls_debug_log( 'Check for new version: '.( yourls_maybe_check_core_version() ? 'yes' : 'no' ) );
     yourls_new_core_version_notice(YOURLS_VERSION);
+}
+
+/**
+ * File include sandbox
+ *
+ * Attempt to include a PHP file, fail with an error message if the file isn't valid PHP code.
+ * This function does not check first if the file exists : depending on use case, you may check first.
+ *
+ * @since 1.9.2
+ * @param string $file filename (full path)
+ * @return string|bool  string if error, true if success
+ */
+function yourls_include_file_sandbox($file) {
+    try {
+        if (is_readable( $file )) {
+            include_once $file;
+            yourls_debug_log("loaded $file");
+            return true;
+        }
+    } catch ( \Throwable $e ) {
+        yourls_debug_log("could not load $file");
+        return sprintf("%s (%s : %s)", $e->getMessage() , $e->getFile() , $e->getLine() );
+    }
 }

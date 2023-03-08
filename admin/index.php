@@ -110,10 +110,10 @@ if ( isset( $_GET['u'] ) or isset( $_GET['up'] ) ) {
 	// No sanitization needed here: everything happens in yourls_add_new_link()
 	if( isset( $_GET['u'] ) ) {
 		// Old school bookmarklet: ?u=<url>
-		$url = urldecode( $_GET['u'] );
+		$url = $_GET['u'];
 	} else {
 		// New style bookmarklet: ?up=<url protocol>&us=<url slashes>&ur=<url rest>
-		$url = urldecode( $_GET['up'] . $_GET['us'] . $_GET['ur'] );
+		$url = $_GET['up'] . $_GET['us'] . $_GET['ur'];
 	}
 	$keyword = ( isset( $_GET['k'] ) ? ( $_GET['k'] ) : '' );
 	$title   = ( isset( $_GET['t'] ) ? ( $_GET['t'] ) : '' );
@@ -292,7 +292,7 @@ yourls_table_tbody_start();
 
 // Main Query
 $where = yourls_apply_filter( 'admin_list_where', $where );
-$url_results = yourls_get_db()->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 ${where['sql']} ORDER BY `$sort_by` $sort_order LIMIT $offset, $perpage;", $where['binds'] );
+$url_results = yourls_get_db()->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 {$where['sql']} ORDER BY `$sort_by` $sort_order LIMIT $offset, $perpage;", $where['binds'] );
 $found_rows = false;
 if( $url_results ) {
 	$found_rows = true;

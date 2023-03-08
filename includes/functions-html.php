@@ -503,11 +503,11 @@ function yourls_die( $message = '', $title = '', $header_code = 200 ) {
  * Return an "Edit" row for the main table
  *
  * @param string $keyword Keyword to edit
+ * @param string $id
  * @return string HTML of the edit row
  */
-function yourls_table_edit_row( $keyword ) {
+function yourls_table_edit_row( $keyword, $id ) {
     $keyword = yourls_sanitize_keyword($keyword);
-	$id = yourls_unique_element_id();
 	$url = yourls_get_keyword_longurl( $keyword );
 	$title = htmlspecialchars( yourls_get_keyword_title( $keyword ) );
 	$safe_url = yourls_esc_attr( $url );
@@ -906,7 +906,10 @@ function yourls_page( $page ) {
     }
 
 	yourls_do_action( 'pre_page', $page );
-	include_once( YOURLS_PAGEDIR . "/$page.php" );
+    $load = yourls_include_file_sandbox(YOURLS_PAGEDIR . "/$page.php");
+	if (is_string($load)) {
+        yourls_die( $load, yourls__('Not found'), 404 );
+	}
 	yourls_do_action( 'post_page', $page );
 }
 
