@@ -30,13 +30,15 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: false
           MYSQL_ROOT_PASSWORD: secret
           MYSQL_DATABASE: yourls_tests
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+          MARIADB_MYSQL_LOCALHOST_USER: 1
+          MARIADB_MYSQL_LOCALHOST_GRANTS: USAGE
+        options: --health-cmd="healthcheck.sh --su-mysql --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Use PHP ${{ matrix.php }}
-      uses: shivammathur/setup-php@2.25.2
+      uses: shivammathur/setup-php@2.25.4
       with:
         php-version: ${{ matrix.php }}
         extensions: mbstring, curl, zip, dom, simplexml, intl, pdo_mysql
