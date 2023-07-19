@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.4.0
       #with:
           #fetch-depth: 100
           # get the last XXX commits from history
@@ -37,7 +37,8 @@ jobs:
           - .git*/**
           -  **/.git*/**
           - .github/*
-         - .gitignore
+          - .gitignore
+          - .gitattributes
           - */.gitignore
           - */.gitkeep
           - .gitlab-ci.yml
