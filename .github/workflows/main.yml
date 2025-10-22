@@ -1,0 +1,84 @@
+# https://github.com/marketplace/actions/ftp-deploy
+# 13.03.2021
+
+name: 🚀 Deploy website on push
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  # pull_request:
+    # branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v4
+      #with:
+          #fetch-depth: 100
+          # get the last XXX commits from history
+          # Make sure this number is AT LEAST 2, that's because we need to see what has changed.
+    
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USER }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        exclude: .git*
+          - .git*/**
+          -  **/.git*/**
+          - .github/*
+          - .gitignore
+          - .gitattributes
+          - */.gitignore
+          - */.gitkeep
+          - .gitlab-ci.yml
+          - readme.md
+          - *.md
+          - .htaccess
+          - *.config
+          - *.conf
+          - [Rr]obots.txt
+          - .editorconfig
+          - .gitattributes
+          - user/*
+          - user/languages/
+          - user/pages/
+          - user/plugins/
+          - !user/plugins/hyphens-in-urls/
+          - !user/plugins/random-bg/
+          - !user/plugins/random-shorturls/
+          - !user/index.html
+          - !user/**/index.html
+          - tests/
+          - tests/yourls-tests-config.php
+          - tests/vendor/
+          - tests/data/auth/config-test-auth-hashed.php
+          - tests/data/htaccess/test*
+          - LICENSE
+          - composer.json
+          - composer.lock
+          - phpunit.xml.dist
+          - readme.html
+          - sample-public-api.txt
+          - sample-public-front-page.txt
+          - sample-remote-api-call.txt
+          - sample-robots.txt
+          - includes/**/tests/
+          - build/
+          - coverage/
+          - phpunit.xml
+          - Thumbs.db
+          - Desktop.ini
+          - .DS_Store
+          - /nbproject/
+          - .idea
