@@ -99,16 +99,36 @@ function yourls_update_clicks( $keyword, $clicks = false ) {
     if ( $clicks !== false && is_int( $clicks ) && $clicks >= 0 ) {
         $update = "UPDATE `$table` SET `clicks` = :clicks WHERE `keyword` = :keyword";
         $values = [ 'clicks' => $clicks, 'keyword' => $keyword ];
+        $update_type = 'set';
     } else {
         $update = "UPDATE `$table` SET `clicks` = clicks + 1 WHERE `keyword` = :keyword";
         $values = [ 'keyword' => $keyword ];
+        $update_type = 'increment';
     }
+
+    $ydb = yourls_get_db();
 
     // Try and update click count. An error probably means a concurrency problem : just skip the update
     try {
-        $result = yourls_get_db()->fetchAffected($update, $values);
+        $result = $ydb->fetchAffected($update, $values);
     } catch (Exception $e) {
         $result = 0;
+    }
+
+    if ( $result ) {
+        if ( $ydb->has_infos($keyword) ) {
+            if ( $update_type === 'increment' ) {
+                $infos = $ydb->get_infos($keyword);
+                if ( isset( $infos['clicks'] ) ) {
+                    $infos['clicks']++;
+                    $ydb->set_infos($keyword, $infos);
+                } else {
+                    $ydb->delete_infos($keyword); // We don't know why it's missing, so just purge the cache.
+                }
+            } elseif ( $update_type === 'set' ) {
+                $ydb->update_infos_if_exists($keyword, ['clicks' => $clicks]);
+            }
+        }
     }
 
     yourls_do_action( 'update_clicks', $keyword, $result, $clicks );
@@ -914,14 +934,19 @@ function yourls_get_remote_title( $url ) {
     // <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     // or <meta charset='utf-8'> and all possible variations: see https://gist.github.com/ozh/7951236
     if ( preg_match( '/<meta[^>]*charset\s*=["\' ]*([a-zA-Z0-9\-_]+)/is', $content, $found ) ) {
-        $charset = $found[ 1 ];
+        if ( yourls_is_valid_charset( $found[ 1 ] ) ) {
+            $charset = $found[ 1 ];
+        }
         unset( $found );
     }
-    else {
+    if ( empty( $charset ) ) {
         // No charset found in HTML. Get charset as (and if) defined by the server response
         $_charset = current( $response->headers->getValues( 'content-type' ) );
         if ( preg_match( '/charset=(\S+)/', $_charset, $found ) ) {
-            $charset = trim( $found[ 1 ], ';' );
+            $_charset = trim( $found[ 1 ], ';' );
+            if ( yourls_is_valid_charset( $_charset ) ) {
+                $charset = $_charset;
+            }
             unset( $found );
         }
     }
@@ -944,6 +969,21 @@ function yourls_get_remote_title( $url ) {
     $title = yourls_sanitize_title( $title, $url );
 
     return (string)yourls_apply_filter( 'get_remote_title', $title, $url );
+}
+
+/**
+ * Is supported charset encoding for conversion.
+ *
+ * @return bool
+ */
+function yourls_is_valid_charset( $charset ) {
+    if ( ! function_exists( 'mb_list_encodings' ) ) {
+        return false; // Okay to return false if mb_list_encodings() is not available since we won't be able to convert the charset.
+    }
+    $charset = strtolower( $charset );
+    $charsets = array_map( 'strtolower', mb_list_encodings() );
+
+    return in_array( $charset, $charsets );
 }
 
 /**
