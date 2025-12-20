@@ -21,14 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
-      uses: actions/checkout@v3.4.0
+      uses: actions/checkout@v4
       #with:
           #fetch-depth: 100
           # get the last XXX commits from history
           # Make sure this number is AT LEAST 2, that's because we need to see what has changed.
     
     - name: 📂 Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.6
       with:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USER }}
