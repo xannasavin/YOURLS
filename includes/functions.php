@@ -17,27 +17,88 @@ function yourls_make_regexp_pattern( $string ) {
 }
 
 /**
- * Get client IP Address. Returns a DB safe string.
+ * Get client IP Address. Returns a DB safe string. May not be a valid IP per se.
+ *
+ * By default, it trusts only REMOTE_ADDR. If the request comes from a proxy
+ * listed in the 'get_ip_trusted_proxies' filter, it looks for the real client
+ * IP in the headers, with precedence HTTP_X_FORWARDED_FOR > HTTP_CLIENT_IP > HTTP_VIA.
  *
  * @return string
  */
-function yourls_get_IP() {
-    $ip = '';
+function yourls_get_IP(): string {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
-    // Precedence: if set, X-Forwarded-For > HTTP_X_FORWARDED_FOR > HTTP_CLIENT_IP > HTTP_VIA > REMOTE_ADDR
-    $headers = [ 'X-Forwarded-For', 'HTTP_X_FORWARDED_FOR', 'HTTP_CLIENT_IP', 'HTTP_VIA', 'REMOTE_ADDR' ];
-    foreach( $headers as $header ) {
-        if ( !empty( $_SERVER[ $header ] ) ) {
-            $ip = $_SERVER[ $header ];
-            break;
+    // Allow plugins to define a trusted proxy list, and if the request comes from a trusted proxy, look for the real IP in the headers
+    // Precedence: if set, HTTP_X_FORWARDED_FOR > HTTP_CLIENT_IP > HTTP_VIA > REMOTE_ADDR
+    $trusted_proxies = yourls_apply_filter('get_ip_trusted_proxies', []);
+
+    if ( !empty( $trusted_proxies ) && yourls_ip_is_in_ip_list( $ip, $trusted_proxies ) ) {
+        $headers = ['HTTP_X_FORWARDED_FOR', 'HTTP_CLIENT_IP', 'HTTP_VIA'];
+        foreach ($headers as $header) {
+            if (!empty($_SERVER[$header])) {
+                $ip = $_SERVER[$header];
+                break;
+            }
         }
     }
 
-    // headers can contain multiple IPs (X-Forwarded-For = client, proxy1, proxy2). Take first one.
-    if ( strpos( $ip, ',' ) !== false )
-        $ip = substr( $ip, 0, strpos( $ip, ',' ) );
+    // If there are multiple IPs (e.g. in HTTP_X_FORWARDED_FOR), take the first one
+    $ip = explode(',', $ip)[0];
 
     return (string)yourls_apply_filter( 'get_IP', yourls_sanitize_ip( $ip ) );
+}
+
+/**
+ * Check if an IP address matches a given IP or CIDR range (IPv4 and IPv6).
+ *
+ * @since 1.10.5
+ * @param string $ip    IP address to check
+ * @param string $range Single IP or CIDR notation (e.g. '10.0.0.0/24' or '2400:cb00::/32')
+ * @return bool
+ */
+function yourls_ip_matches_range(string $ip, string $range ): bool {
+    if (!str_contains($range, '/')) {
+        return inet_pton( $ip ) === inet_pton( $range );
+    }
+
+    list( $subnet, $bits ) = explode( '/', $range );
+    $bits = (int) $bits;
+
+    $ip_bin     = inet_pton( $ip );
+    $subnet_bin = inet_pton( $subnet );
+
+    if ( $ip_bin === false || $subnet_bin === false ) {
+        return false;
+    }
+
+    // Both must be same protocol (4 bytes for IPv4, 16 bytes for IPv6)
+    if ( strlen( $ip_bin ) !== strlen( $subnet_bin ) ) {
+        return false;
+    }
+
+    $mask = str_repeat( "\xff", (int) ( $bits / 8 ) );
+    if ( $bits % 8 ) {
+        $mask .= chr( 0xff << ( 8 - $bits % 8 ) & 0xff );
+    }
+    $mask = str_pad( $mask, strlen( $ip_bin ), "\x00" );
+
+    return ( $ip_bin & $mask ) === ( $subnet_bin & $mask );
+}
+
+/**
+ * Check if an IP address is in a list of IP (IPs or CIDR ranges), typically a list of trusted proxies.
+ *
+ * @param string $ip      IP address to check
+ * @param array  $proxies List of IPs or CIDR ranges
+ * @return bool
+ */
+function yourls_ip_is_in_ip_list(string $ip, array $proxies ): bool {
+    foreach ( $proxies as $range ) {
+        if ( yourls_ip_matches_range( $ip, $range ) ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -89,8 +150,8 @@ function yourls_xml_encode( $array ) {
  */
 function yourls_update_clicks( $keyword, $clicks = false ) {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_update_clicks', false, $keyword, $clicks );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_update_clicks', yourls_shunt_default(), $keyword, $clicks );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -106,7 +167,7 @@ function yourls_update_clicks( $keyword, $clicks = false ) {
         $update_type = 'increment';
     }
 
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-update_clicks');
 
     // Try and update click count. An error probably means a concurrency problem : just skip the update
     try {
@@ -173,7 +234,7 @@ function yourls_get_stats($filter = 'top', $limit = 10, $start = 0) {
     if ( $limit > 0 ) {
 
         $table_url = YOURLS_DB_TABLE_URL;
-        $results = yourls_get_db()->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 ORDER BY $sort_by $sort_order LIMIT $start, $limit;" );
+        $results = yourls_get_db('read-get_stats')->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 ORDER BY $sort_by $sort_order LIMIT $start, $limit;" );
 
         $return = [];
         $i = 1;
@@ -210,8 +271,8 @@ function yourls_get_stats($filter = 'top', $limit = 10, $start = 0) {
 function yourls_get_db_stats( $where = [ 'sql' => '', 'binds' => [] ] ) {
     $table_url = YOURLS_DB_TABLE_URL;
 
-    $totals = yourls_get_db()->fetchObject( "SELECT COUNT(keyword) as count, SUM(clicks) as sum FROM `$table_url` WHERE 1=1 " . $where['sql'] , $where['binds'] );
-    $return = [ 'total_links' => $totals->count, 'total_clicks' => $totals->sum ];
+    $totals = yourls_get_db('read-get_db_stats')->fetchObject( "SELECT COUNT(keyword) as count, SUM(clicks) as sum FROM `$table_url` WHERE 1=1 " . $where['sql'] , $where['binds'] );
+    $return = [ 'total_links' => (int)$totals->count, 'total_clicks' => (int)$totals->sum ];
 
     return yourls_apply_filter( 'get_db_stats', $return, $where );
 }
@@ -314,8 +375,8 @@ function yourls_redirect_shorturl($url, $keyword) {
  */
 function yourls_robots_tag_header() {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_robots_tag_header', false );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_robots_tag_header', yourls_shunt_default() );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -356,8 +417,8 @@ function yourls_no_cache_headers() {
  */
 function yourls_no_frame_header() {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_no_frame_header', false );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_no_frame_header', yourls_shunt_default() );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -515,8 +576,8 @@ function yourls_get_HTTP_status( $code ) {
  */
 function yourls_log_redirect( $keyword ) {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_log_redirect', false, $keyword );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_log_redirect', yourls_shunt_default(), $keyword );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -535,9 +596,12 @@ function yourls_log_redirect( $keyword ) {
         'location' => yourls_geo_ip_to_countrycode($ip),
     ];
 
+    // Action to allow plugins to log the redirect in their own way. See #3990
+    yourls_do_action( 'log_redirect', $binds );
+
     // Try and log. An error probably means a concurrency problem : just skip the logging
     try {
-        $result = yourls_get_db()->fetchAffected("INSERT INTO `$table` (click_time, shorturl, referrer, user_agent, ip_address, country_code) VALUES (:now, :keyword, :referrer, :ua, :ip, :location)", $binds );
+        $result = yourls_get_db('write-log_redirect')->fetchAffected("INSERT INTO `$table` (click_time, shorturl, referrer, user_agent, ip_address, country_code) VALUES (:now, :keyword, :referrer, :ua, :ip, :location)", $binds );
     } catch (Exception $e) {
         $result = 0;
     }
@@ -546,12 +610,15 @@ function yourls_log_redirect( $keyword ) {
 }
 
 /**
- * Check if we want to not log redirects (for stats)
+ * Check if we want to log redirects (for stats)
+ *
+ * Logs redirects unless YOURLS_NOSTATS is defined and true. Filterable.
  *
  * @return bool
  */
 function yourls_do_log_redirect() {
-    return ( !defined( 'YOURLS_NOSTATS' ) || YOURLS_NOSTATS != true );
+    $do_log = ( !defined( 'YOURLS_NOSTATS' ) || YOURLS_NOSTATS != true );
+    return (bool)yourls_apply_filter( 'do_log_redirect', $do_log );
 }
 
 /**
@@ -635,26 +702,55 @@ function yourls_allow_duplicate_longurls() {
 }
 
 /**
+ * Get the flood delay in seconds, as maybe defined in config, filtered
+ *
+ * This is the minimum delay between two link creations from the same IP.
+ * Defaults to 15 when undefined.
+ *
+ * @since 1.10.5
+ * @return int Flood delay in seconds
+ */
+function yourls_get_flood_delay(): int {
+    $delay = defined( 'YOURLS_FLOOD_DELAY_SECONDS' ) ? (int) YOURLS_FLOOD_DELAY_SECONDS : 15;
+    return yourls_apply_filter( 'get_flood_delay', $delay );
+}
+
+/**
+ * Get the list of IPs exempt from flood checking, as maybe defined in config, filtered
+ *
+ * @since 1.10.5
+ * @return array List of whitelisted IPs (empty array if none)
+ */
+function yourls_get_flood_ip_whitelist(): array {
+    $whitelist = defined( 'YOURLS_FLOOD_IP_WHITELIST' ) ? (string) YOURLS_FLOOD_IP_WHITELIST : '';
+    $ips = array_filter( array_map( 'trim', explode( ',', $whitelist ) ) );
+
+    $ips = yourls_apply_filter( 'get_flood_ip_whitelist', $ips );
+
+    // Sanitize each IP, including any value added through the filter, drop empties and reindex
+    $ips = array_map( fn( $ip ) => yourls_sanitize_ip( trim( (string) $ip ) ), (array) $ips );
+    return array_values( array_filter( $ips ) );
+}
+
+/**
  * Check if an IP shortens URL too fast to prevent DB flood. Return true, or die.
  *
  * @param string $ip
  * @return bool|mixed|string
  */
-function yourls_check_IP_flood( $ip = '' ) {
+function yourls_check_IP_flood(string $ip = '' ): mixed {
 
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_check_IP_flood', false, $ip );
-    if ( false !== $pre )
+    $pre = yourls_apply_filter( 'shunt_check_IP_flood', yourls_shunt_default(), $ip );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
+    }
 
     yourls_do_action( 'pre_check_ip_flood', $ip ); // at this point $ip can be '', check it if your plugin hooks in here
 
     // Raise white flag if installing or if no flood delay defined
-    if(
-        ( defined('YOURLS_FLOOD_DELAY_SECONDS') && YOURLS_FLOOD_DELAY_SECONDS === 0 ) ||
-        !defined('YOURLS_FLOOD_DELAY_SECONDS') ||
-        yourls_is_installing()
-    )
+    $flood_delay = yourls_get_flood_delay();
+    if( $flood_delay <= 0 || yourls_is_installing() )
         return true;
 
     // Don't throttle logged in users
@@ -664,13 +760,8 @@ function yourls_check_IP_flood( $ip = '' ) {
     }
 
     // Don't throttle whitelist IPs
-    if( defined( 'YOURLS_FLOOD_IP_WHITELIST' ) && YOURLS_FLOOD_IP_WHITELIST ) {
-        $whitelist_ips = explode( ',', YOURLS_FLOOD_IP_WHITELIST );
-        foreach( (array)$whitelist_ips as $whitelist_ip ) {
-            $whitelist_ip = trim( $whitelist_ip );
-            if ( $whitelist_ip == $ip )
-                return true;
-        }
+    if( in_array( $ip, yourls_get_flood_ip_whitelist() ) ) {
+        return true;
     }
 
     $ip = ( $ip ? yourls_sanitize_ip( $ip ) : yourls_get_IP() );
@@ -678,11 +769,11 @@ function yourls_check_IP_flood( $ip = '' ) {
     yourls_do_action( 'check_ip_flood', $ip );
 
     $table = YOURLS_DB_TABLE_URL;
-    $lasttime = yourls_get_db()->fetchValue( "SELECT `timestamp` FROM $table WHERE `ip` = :ip ORDER BY `timestamp` DESC LIMIT 1", [ 'ip' => $ip ] );
+    $lasttime = yourls_get_db('read-check_ip_flood')->fetchValue( "SELECT `timestamp` FROM $table WHERE `ip` = :ip ORDER BY `timestamp` DESC LIMIT 1", [ 'ip' => $ip ] );
     if( $lasttime ) {
         $now = date( 'U' );
         $then = date( 'U', strtotime( $lasttime ) );
-        if( ( $now - $then ) <= YOURLS_FLOOD_DELAY_SECONDS ) {
+        if( ( $now - $then ) <= $flood_delay ) {
             // Flood!
             yourls_do_action( 'ip_flood', $ip, $now - $then );
             yourls_die( yourls__( 'Too many URLs added too fast. Slow down please.' ), yourls__( 'Too Many Requests' ), 429 );
@@ -722,7 +813,7 @@ function yourls_is_upgrading() {
  * @return bool
  */
 function yourls_is_installed() {
-    return (bool)yourls_apply_filter( 'is_installed', yourls_get_db()->is_installed() );
+    return (bool)yourls_apply_filter( 'is_installed', yourls_get_db('read-is_installed')->is_installed() );
 }
 
 /**
@@ -733,7 +824,7 @@ function yourls_is_installed() {
  * @return void
  */
 function yourls_set_installed( $bool ) {
-    yourls_get_db()->set_installed( $bool );
+    yourls_get_db('read-set_installed')->set_installed( $bool );
 }
 
 /**
@@ -887,13 +978,14 @@ function yourls_is_ssl() {
  * The function tries to convert funky characters found in titles to UTF8, from the detected charset.
  * Charset in use is guessed from HTML meta tag, or if not found, from server's 'content-type' response.
  *
+ * @since 1.5
  * @param string $url URL
  * @return string Title (sanitized) or the URL if no title found
  */
-function yourls_get_remote_title( $url ) {
+function yourls_get_remote_title(string $url ): string {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_get_remote_title', false, $url );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_get_remote_title', yourls_shunt_default(), $url );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -904,11 +996,24 @@ function yourls_get_remote_title( $url ) {
         return $url;
     }
 
+    // When an unauthenticated visitor triggers the fetch, don't let them use the server to reach
+    // hosts they cannot reach themselves.
+    $ssrf_options = [];
+    if ( yourls_restrict_remote_title_fetch() ) {
+        $host = parse_url( $url, PHP_URL_HOST );
+        if ( !is_string( $host ) || yourls_host_is_local( $host ) ) {
+            yourls_debug_log( 'Remote title fetch denied on non public host: ' . $url );
+            return $url;
+        }
+        // The initial host is public, now make sure every redirect hop is too
+        $ssrf_options = yourls_http_options_no_local_redirect();
+    }
+
     $title = $charset = false;
 
     $max_bytes = yourls_apply_filter( 'get_remote_title_max_byte', 32768 ); // limit data fetching to 32K in order to find a <title> tag
 
-    $response = yourls_http_get( $url, [], [], [ 'max_bytes' => $max_bytes ] ); // can be a Request object or an error string
+    $response = yourls_http_get( $url, [], [], array_merge( [ 'max_bytes' => $max_bytes ], $ssrf_options ) ); // can be a Request object or an error string
     if ( is_string( $response ) ) {
         return $url;
     }
@@ -919,8 +1024,8 @@ function yourls_get_remote_title( $url ) {
         return $url;
     }
 
-    // look for <title>. No title found? Return the URL
-    if ( preg_match( '/<title>(.*?)<\/title>/is', $content, $found ) ) {
+    // look for <title>, which can have attributes. No title found? Return the URL
+    if ( preg_match( '/<title(?:\s[^>]*)?>(.*?)<\/title>/is', $content, $found ) ) {
         $title = $found[ 1 ];
         unset( $found );
     }
@@ -933,17 +1038,34 @@ function yourls_get_remote_title( $url ) {
     // Get charset as (and if) defined by the HTML meta tag. We should match
     // <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     // or <meta charset='utf-8'> and all possible variations: see https://gist.github.com/ozh/7951236
-    if ( preg_match( '/<meta[^>]*charset\s*=["\' ]*([a-zA-Z0-9\-_]+)/is', $content, $found ) ) {
-        if ( yourls_is_valid_charset( $found[ 1 ] ) ) {
-            $charset = $found[ 1 ];
+    // A 'charset=' string can also appear where it does not declare anything, for instance in the
+    // description of the page, so check each <meta> tag and to find if a charset is declared.
+    if ( preg_match_all( '/<meta\s[^>]*>/is', $content, $metas ) ) {
+        foreach ( $metas[ 0 ] as $meta ) {
+            if ( preg_match( '/\bcontent\s*=\s*["\']?[^"\']*?charset\s*=["\' ]*([a-zA-Z0-9\-_]+)/is', $meta, $found ) ) {
+                // A charset in the 'content' attribute only counts in a Content-Type declaration
+                if ( !preg_match( '/\bhttp-equiv\s*=\s*["\']?content-type/is', $meta ) ) {
+                    unset( $found );
+                    continue;
+                }
+            }
+            elseif ( !preg_match( '/\bcharset\s*=["\' ]*([a-zA-Z0-9\-_]+)/is', $meta, $found ) ) {
+                continue;
+            }
+            // First declaration wins, whether it is valid or not
+            if ( yourls_is_valid_charset( $found[ 1 ] ) ) {
+                $charset = $found[ 1 ];
+            }
+            unset( $found );
+            break;
         }
-        unset( $found );
     }
     if ( empty( $charset ) ) {
         // No charset found in HTML. Get charset as (and if) defined by the server response
-        $_charset = current( $response->headers->getValues( 'content-type' ) );
+        $_charset = current( (array)$response->headers->getValues( 'content-type' ) );
+        // The charset value can be a quoted string: 'text/html; charset="utf-8"'
         if ( preg_match( '/charset=(\S+)/', $_charset, $found ) ) {
-            $_charset = trim( $found[ 1 ], ';' );
+            $_charset = trim( $found[ 1 ], ';"\'' );
             if ( yourls_is_valid_charset( $_charset ) ) {
                 $charset = $_charset;
             }
@@ -951,14 +1073,14 @@ function yourls_get_remote_title( $url ) {
         }
     }
 
-    // Conversion to utf-8 if what we have is not utf8 already
-    if ( strtolower( $charset ) != 'utf-8' && function_exists( 'mb_convert_encoding' ) ) {
-        // We use @ to remove warnings because mb_ functions are easily bitching about illegal chars
-        if ( $charset ) {
-            $title = @mb_convert_encoding( $title, 'UTF-8', $charset );
+    // Conversion to utf-8 if what we have is not utf8 already. A page can also declare utf-8 and
+    // still serve invalid utf-8, so in that case convert too, to replace the invalid characters.
+    if ( function_exists( 'mb_convert_encoding' ) ) {
+        if ( $charset && strtolower( $charset ) != 'utf-8' ) {
+            $title = mb_convert_encoding( $title, 'UTF-8', $charset );
         }
-        else {
-            $title = @mb_convert_encoding( $title, 'UTF-8' );
+        elseif ( !mb_check_encoding( $title, 'UTF-8' ) ) {
+            $title = mb_convert_encoding( $title, 'UTF-8' );
         }
     }
 
@@ -1018,14 +1140,14 @@ function yourls_is_mobile_device() {
  * For testing purposes, parameters can be passed.
  *
  * @since 1.5
- * @param string $yourls_site   Optional, YOURLS installation URL (default to constant YOURLS_SITE)
- * @param string $uri           Optional, page requested (default to $_SERVER['REQUEST_URI'] eg '/yourls/abcd' )
- * @return string               request relative to YOURLS base (eg 'abdc')
+ * @param string $yourls_site Optional, YOURLS installation URL (default to constant YOURLS_SITE)
+ * @param string $uri         Optional, page requested (default to $_SERVER['REQUEST_URI'] eg '/yourls/abcd' )
+ * @return string             Request relative to YOURLS base (eg 'abdc')
  */
-function yourls_get_request($yourls_site = '', $uri = '') {
+function yourls_get_request(string $yourls_site = '', string $uri = ''): string {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_get_request', false );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_get_request', yourls_shunt_default() );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
@@ -1049,20 +1171,27 @@ function yourls_get_request($yourls_site = '', $uri = '') {
     // | http://sho.rt/abc         | http://sho.rt           | /                   | abc          |
     // | https://SHO.rt/subdir/abc | https://shor.rt/subdir/ | /subdir/            | abc          |
     // +---------------------------+-------------------------+---------------------+--------------+
-    // and so on. You can find various test cases in /tests/tests/utilities/get_request.php
+    // and so on. You can find various test cases in tests/tests/utilities/GetRequestTest.php
 
     // Take only the URL_PATH part of YOURLS_SITE (ie "https://sho.rt:1337/path/to/yourls" -> "/path/to/yourls")
     $yourls_site = parse_url( $yourls_site, PHP_URL_PATH ).'/';
 
     // Strip path part from request if exists
     $request = $uri;
-    if ( substr( $uri, 0, strlen( $yourls_site ) ) == $yourls_site ) {
+    if (str_starts_with($uri, $yourls_site)) {
         $request = ltrim( substr( $uri, strlen( $yourls_site ) ), '/' );
     }
 
-    // Unless request looks like a full URL (ie request is a simple keyword) strip query string
+    // Request can be a full URL, ie https://sho.rt/http://site.com to "prefix n' shorten" a URL, see https://sho.rt/admin/tools.php
+    // If request is a simple keyword, strip query string and suspicious traversal attempts
+    // Note that in a real case use, this shouldn't happen since the server resolves the path before the request reaches YOURLS,
+    // ie https://github.com/ozh/../YOURLS/ resolves to https://github.com/YOURLS/
     if ( !preg_match( "@^[a-zA-Z]+://.+@", $request ) ) {
         $request = current( explode( '?', $request ) );
+        $request = str_replace( [ '../', '..\\' ], '', $request, $count );
+        if ( $count > 0 ) {
+            $request = trim( $request, '/' );
+        }
     }
 
     $request = yourls_sanitize_url( $request );
@@ -1169,13 +1298,19 @@ function yourls_check_maintenance_mode() {
  * @since 1.6
  * @see yourls_get_protocol()
  *
- * @param string $url URL to be check
+ * @param string $url URL to be checked
  * @param array $protocols Optional. Array of protocols, defaults to global $yourls_allowedprotocols
  * @return bool true if protocol allowed, false otherwise
  */
-function yourls_is_allowed_protocol( $url, $protocols = [] ) {
+function yourls_is_allowed_protocol(string $url, array $protocols = [] ): bool {
     if ( empty( $protocols ) ) {
         global $yourls_allowedprotocols;
+        // KSES globals are normally populated on the 'plugins_loaded' action. This can run
+        // earlier though (eg yourls_die() on a DB connection error, before plugins load), so
+        // make sure the allowed protocols are available.
+        if ( ! is_array( $yourls_allowedprotocols ) ) {
+            yourls_kses_init();
+        }
         $protocols = $yourls_allowedprotocols;
     }
 
@@ -1247,10 +1382,6 @@ function yourls_get_relative_url( $url, $strict = true ) {
  * This function is to be used in every function that is deprecated.
  *
  * @since 1.6
- * @uses yourls_do_action() Calls 'deprecated_function' and passes the function name, what to use instead,
- *   and the version the function was deprecated in.
- * @uses yourls_apply_filter() Calls 'deprecated_function_trigger_error' and expects boolean value of true to do
- *   trigger or false to not trigger error.
  *
  * @param string $function The function that was called
  * @param string $version The version of WordPress that deprecated the function
