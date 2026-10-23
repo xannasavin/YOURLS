@@ -65,13 +65,16 @@ H /user/plugins/fuehringer/tests/
 + /user/plugins/fuehringer/***
 - /user/**
 
-# --- Server-only files in the web root: protected ---
-- /.htaccess
-- /.user.ini
-- /php.ini
+# --- Server-only files: protected ---
+# Any depth: admin/.htaccess holds the extra basic auth for /admin.
+- .htaccess
+- .htpasswd
+- .user.ini
+- php.ini
+- error_log
+- .ftpquota
 - /robots.txt
 - /favicon.ico
-- /error_log
 - /.well-known/
 - /cgi-bin/
 - *.config
