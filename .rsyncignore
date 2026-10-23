@@ -72,6 +72,7 @@ R /user/plugins/sample-*/
 - /error_log
 - /.well-known/
 - /cgi-bin/
+- /404/
 - *.config
 - *.conf
 
