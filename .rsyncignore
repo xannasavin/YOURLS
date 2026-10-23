@@ -1,0 +1,74 @@
+# rsync filter list for .github/workflows/deploy.yml (--exclude-from).
+#
+# Everything excluded here is BOTH skipped on upload AND protected from
+# --delete on the server. That is how server-only files survive a deploy:
+# user/config.php, .htaccess, extra plugins, cPanel folders etc.
+#
+# Rules are checked top to bottom, first match wins. Lines starting with
+# "+ " are includes (needed for the user/ whitelist below).
+
+# --- user/: only the bundled plugins we use + index.html guards ---
+# Everything else in user/ (config.php, languages, pages, extra plugins)
+# lives on the server only and must never be overwritten or deleted.
++ /user/
++ /user/index.html
++ /user/languages/
++ /user/languages/index.html
++ /user/pages/
++ /user/pages/index.html
++ /user/plugins/
++ /user/plugins/index.html
++ /user/plugins/hyphens-in-urls/***
++ /user/plugins/random-bg/***
++ /user/plugins/random-shorturls/***
+- /user/**
+
+# --- Server-only files in the web root ---
+/.htaccess
+/.user.ini
+/php.ini
+/robots.txt
+/favicon.ico
+/error_log
+/.well-known/
+/cgi-bin/
+*.config
+*.conf
+
+# --- VCS + CI ---
+.git/
+.github/
+.gitignore
+.gitattributes
+.git-blame-ignore-revs
+.rsyncignore
+.editorconfig
+
+# --- Local-only tooling ---
+.claude/
+.claude-bw/
+.vscode/
+.vs/
+.idea/
+/nbproject/
+
+# --- Repo docs, samples, tests (not meant to be served) ---
+*.md
+/LICENSE
+/readme.html
+/composer.json
+/composer.lock
+/phpunit.xml
+/phpunit.xml.dist
+/sample-*.txt
+/tests/
+/build/
+/coverage/
+/includes/**/tests/
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~

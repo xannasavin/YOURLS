@@ -50,8 +50,5 @@ Desktop.ini
 # IDE files
 /nbproject/
 .idea
-
-##OWN
-.git-ftp-ignore
 .vs
 .vscode

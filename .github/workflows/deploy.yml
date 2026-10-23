@@ -1,0 +1,142 @@
+name: Deploy
+
+# Deploys the fork to production via rsync over SSH (replaces the old FTP
+# deploy in main.yml). Runs on every push to master, which includes the
+# GitHub "Sync fork" merges from upstream YOURLS.
+#
+# What goes to the server is controlled by .rsyncignore: excluded paths are
+# neither uploaded nor deleted, so user/config.php, .htaccess and other
+# server-only files survive --delete.
+#
+# DRY RUN: DRY_RUN below defaults to 'true' until the first rsync plan has
+# been checked (look for "*deleting" lines in the "Deploy with rsync" step).
+# Then flip the default to 'false'. A manual "Run workflow" can always pick
+# dry_run=true or false.
+#
+# Required repository secrets:
+#   SSH_PRIVATE_KEY, SSH_DOMAIN, SSH_PORT, SSH_USER
+#   DEPLOY_PATH  absolute path of the YOURLS root on the server
+#   SITE_URL     public base URL without trailing slash, for the smoke test
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
+      - '.claude-bw/**'
+      - '.gitignore'
+      - '.gitattributes'
+      - '.editorconfig'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry-run (true = print the rsync plan only, no server changes)'
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy via rsync
+    runs-on: ubuntu-latest
+    env:
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Build source for rsync only; never pushes back.
+          persist-credentials: false
+
+      - name: Announce mode
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::warning::DRY RUN: printing the rsync plan only, no server changes."
+          else
+            echo "LIVE DEPLOY: changes will be written to production."
+          fi
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_DOMAIN: ${{ secrets.SSH_DOMAIN }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$SSH_PORT" "$SSH_DOMAIN" >> ~/.ssh/known_hosts 2>/dev/null
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::Failed to fetch SSH host key for $SSH_DOMAIN:$SSH_PORT"
+            exit 1
+          fi
+
+      # File backup of the current web root before overwriting it. The DB is
+      # not touched by a deploy, so it is not dumped here.
+      - name: Pre-deploy backup
+        if: ${{ env.DRY_RUN != 'true' }}
+        env:
+          SSH_DOMAIN: ${{ secrets.SSH_DOMAIN }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_DOMAIN" bash -s <<REMOTE_SCRIPT
+          set -e
+          # Own directory outside the web root; owner-only because the
+          # archive contains user/config.php with the DB password.
+          BACKUP_DIR=~/backups/yourls
+          mkdir -p "\$BACKUP_DIR"
+          chmod 700 "\$BACKUP_DIR"
+          BACKUP_FILE="\$BACKUP_DIR/pre-deploy-\$(date +%Y%m%d-%H%M%S).tgz"
+          (umask 077; tar czf "\$BACKUP_FILE" -C "$DEPLOY_PATH" .)
+          echo "Backup created: \$BACKUP_FILE (\$(stat -c%s "\$BACKUP_FILE") bytes)"
+          # Keep the 5 newest archives.
+          ls -tp "\$BACKUP_DIR"/pre-deploy-*.tgz 2>/dev/null | tail -n +6 | xargs -r rm --
+          REMOTE_SCRIPT
+
+      - name: Deploy with rsync
+        env:
+          SSH_DOMAIN: ${{ secrets.SSH_DOMAIN }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          DRY_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then
+            DRY_FLAG="--dry-run"
+            echo "DRY RUN: rsync reports the transfer plan but writes nothing."
+            echo "Check every '*deleting' line before going live."
+          fi
+          rsync -rlptvz --delete --itemize-changes $DRY_FLAG \
+            --exclude-from=".rsyncignore" \
+            -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=yes" \
+            ./ "$SSH_USER@$SSH_DOMAIN:$DEPLOY_PATH/"
+
+      - name: Smoke test
+        if: ${{ env.DRY_RUN != 'true' }}
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+        run: |
+          sleep 5
+          # Admin login page: proves PHP, config and DB connection work.
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/admin/" || echo "000")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Smoke test FAILED: /admin/ returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Smoke test passed (/admin/ HTTP 200)"
+
+      - name: Dry-run summary
+        if: ${{ env.DRY_RUN == 'true' }}
+        run: |
+          echo "DRY RUN complete, no server changes were made."
+          echo "To deploy for real: dispatch with dry_run=false, or flip the DRY_RUN default to 'false'."
