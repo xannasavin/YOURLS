@@ -8,119 +8,117 @@ class ComposerStaticInit1d5e2036274043d1e0e9e3243991653e
 {
     public static $files = array (
         'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
-        'b45b351e6b6f7487d819961fef2fda77' => __DIR__ . '/..' . '/jakeasmith/http_build_url/src/http_build_url.php',
+        '09c71344b83e0976e57c2d7de64f6e58' => __DIR__ . '/..' . '/ozh/http_build_url/src/http_build_url.php',
         '941748b3c8cae4466c827dfb5ca9602a' => __DIR__ . '/..' . '/rmccue/requests/library/Deprecated.php',
         'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'Y' => 
+        'Y' =>
         array (
             'YOURLS\\' => 7,
         ),
-        'W' => 
+        'W' =>
         array (
             'WpOrg\\Requests\\' => 15,
         ),
-        'S' => 
+        'S' =>
         array (
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Intl\\Normalizer\\' => 33,
             'Symfony\\Polyfill\\Intl\\Idn\\' => 26,
             'Spatie\\ArrayToXml\\' => 18,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\Log\\' => 8,
             'POMO\\' => 5,
         ),
-        'M' => 
+        'O' =>
+        array (
+            'Ozh\\Bookmarkletgen\\' => 19,
+        ),
+        'M' =>
         array (
             'MaxMind\\WebService\\' => 19,
             'MaxMind\\Exception\\' => 18,
             'MaxMind\\Db\\' => 11,
         ),
-        'G' => 
+        'G' =>
         array (
             'GeoIp2\\' => 7,
         ),
-        'C' => 
+        'C' =>
         array (
             'Composer\\CaBundle\\' => 18,
         ),
-        'A' => 
+        'A' =>
         array (
             'Aura\\Sql\\' => 9,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'YOURLS\\' => 
+        'YOURLS\\' =>
         array (
             0 => __DIR__ . '/../../..' . '/includes',
         ),
-        'WpOrg\\Requests\\' => 
+        'WpOrg\\Requests\\' =>
         array (
             0 => __DIR__ . '/..' . '/rmccue/requests/src',
         ),
-        'Symfony\\Polyfill\\Mbstring\\' => 
+        'Symfony\\Polyfill\\Mbstring\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
         ),
-        'Symfony\\Polyfill\\Intl\\Normalizer\\' => 
+        'Symfony\\Polyfill\\Intl\\Normalizer\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer',
         ),
-        'Symfony\\Polyfill\\Intl\\Idn\\' => 
+        'Symfony\\Polyfill\\Intl\\Idn\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-idn',
         ),
-        'Spatie\\ArrayToXml\\' => 
+        'Spatie\\ArrayToXml\\' =>
         array (
             0 => __DIR__ . '/..' . '/spatie/array-to-xml/src',
         ),
-        'Psr\\Log\\' => 
+        'Psr\\Log\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
         ),
-        'POMO\\' => 
+        'POMO\\' =>
         array (
             0 => __DIR__ . '/..' . '/pomo/pomo/src',
         ),
-        'MaxMind\\WebService\\' => 
+        'Ozh\\Bookmarkletgen\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/ozh/bookmarkletgen/src',
+        ),
+        'MaxMind\\WebService\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/WebService',
         ),
-        'MaxMind\\Exception\\' => 
+        'MaxMind\\Exception\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/Exception',
         ),
-        'MaxMind\\Db\\' => 
+        'MaxMind\\Db\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
         ),
-        'GeoIp2\\' => 
+        'GeoIp2\\' =>
         array (
             0 => __DIR__ . '/..' . '/geoip2/geoip2/src',
         ),
-        'Composer\\CaBundle\\' => 
+        'Composer\\CaBundle\\' =>
         array (
             0 => __DIR__ . '/..' . '/composer/ca-bundle/src',
         ),
-        'Aura\\Sql\\' => 
+        'Aura\\Sql\\' =>
         array (
             0 => __DIR__ . '/..' . '/aura/sql/src',
-        ),
-    );
-
-    public static $prefixesPsr0 = array (
-        'O' => 
-        array (
-            'Ozh\\Bookmarkletgen\\' => 
-            array (
-                0 => __DIR__ . '/..' . '/ozh/bookmarkletgen/src',
-            ),
         ),
     );
 
@@ -135,7 +133,6 @@ class ComposerStaticInit1d5e2036274043d1e0e9e3243991653e
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit1d5e2036274043d1e0e9e3243991653e::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit1d5e2036274043d1e0e9e3243991653e::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit1d5e2036274043d1e0e9e3243991653e::$prefixesPsr0;
             $loader->classMap = ComposerStaticInit1d5e2036274043d1e0e9e3243991653e::$classMap;
 
         }, null, ClassLoader::class);

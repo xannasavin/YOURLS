@@ -68,6 +68,10 @@ function yourls_upgrade($step, $oldver, $newver, $oldsql, $newsql ) {
             }
         }
 
+        if( $oldsql < 507 ) {
+            yourls_upgrade_to_507();
+        }
+
         yourls_redirect_javascript( yourls_admin_url( "upgrade.php?step=3" ) );
 
         break;
@@ -84,6 +88,31 @@ function yourls_upgrade($step, $oldver, $newver, $oldsql, $newsql ) {
 /************************** 1.6 -> 1.8 **************************/
 
 /**
+ * Add sort index for fast URL lookups.
+ * DB version 507.
+ */
+function yourls_upgrade_to_507() {
+    echo "<p>Adding index for url column. Please wait...</p>";
+
+    $table = YOURLS_DB_TABLE_URL;
+
+    $query = sprintf("ALTER TABLE `%s` ADD INDEX `url_idx` (`url`(50));", $table);
+
+    try {
+        yourls_get_db('write-upgrade_to_507')->perform($query);
+    } catch (\Exception $e) {
+        echo "<p class='error'>Unable to update the DB.</p>";
+        echo "<p>Could not index urls. You will have to fix things manually :(. The error was
+        <pre>";
+        echo $e->getMessage();
+        echo "\n</pre>";
+        die();
+    }
+
+    echo "<p class='success'>OK!</p>";
+}
+
+/**
  * Update to 506, just the fix for people who had updated to master on 1.7.10
  *
  */
@@ -93,13 +122,13 @@ function yourls_upgrade_505_to_506() {
     $query = sprintf('ALTER TABLE `%s` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', YOURLS_DB_TABLE_URL);
 
     try {
-        yourls_get_db()->perform($query);
+        yourls_get_db('write-upgrade_505_to_506')->perform($query);
     } catch (\Exception $e) {
         echo "<p class='error'>Unable to update the DB.</p>";
         echo "<p>Could not change collation. You will have to fix things manually :(. The error was
         <pre>";
         echo $e->getMessage();
-        echo "/n</pre>";
+        echo "\n</pre>";
         die();
     }
 
@@ -111,7 +140,7 @@ function yourls_upgrade_505_to_506() {
  *
  */
 function yourls_upgrade_to_506() {
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-upgrade_to_506');
     $error_msg = [];
 
     echo "<p>Updating DB. Please wait...</p>";
@@ -158,7 +187,7 @@ function yourls_upgrade_482() {
     // Change URL title charset to UTF8
     $table_url = YOURLS_DB_TABLE_URL;
     $sql = "ALTER TABLE `$table_url` CHANGE `title` `title` TEXT CHARACTER SET utf8;";
-    yourls_get_db()->perform( $sql );
+    yourls_get_db('write-upgrade_482')->perform( $sql );
     echo "<p>Updating table structure. Please wait...</p>";
 }
 
@@ -177,7 +206,7 @@ function yourls_upgrade_to_15( ) {
     // Alter URL table to store titles
     $table_url = YOURLS_DB_TABLE_URL;
     $sql = "ALTER TABLE `$table_url` ADD `title` TEXT AFTER `url`;";
-    yourls_get_db()->perform( $sql );
+    yourls_get_db('write-upgrade_to_15')->perform( $sql );
     echo "<p>Updating table structure. Please wait...</p>";
 
     // Update .htaccess
@@ -193,7 +222,7 @@ function yourls_upgrade_to_15( ) {
  */
 function yourls_upgrade_to_143( ) {
     // Check if we have 'keyword' (borked install) or 'shorturl' (ok install)
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-upgrade_to_143');
     $table_log = YOURLS_DB_TABLE_LOG;
     $sql = "SHOW COLUMNS FROM `$table_log`";
     $cols = $ydb->fetchObjects( $sql );
@@ -227,7 +256,7 @@ function yourls_upgrade_to_141( ) {
 function yourls_alter_url_table_to_141() {
     $table_url = YOURLS_DB_TABLE_URL;
     $alter = "ALTER TABLE `$table_url` CHANGE `keyword` `keyword` VARCHAR( 200 ) BINARY, CHANGE `url` `url` TEXT BINARY ";
-    yourls_get_db()->perform( $alter );
+    yourls_get_db('write-alter_url_table_to_141')->perform( $alter );
     echo "<p>Structure of existing tables updated. Please wait...</p>";
 }
 
@@ -281,9 +310,9 @@ function yourls_update_options_to_14() {
 
     if( defined('YOURLS_DB_TABLE_NEXTDEC') ) {
         $table = YOURLS_DB_TABLE_NEXTDEC;
-        $next_id = yourls_get_db()->fetchValue("SELECT `next_id` FROM `$table`");
+        $next_id = yourls_get_db('read-update_options_to_14')->fetchValue("SELECT `next_id` FROM `$table`");
         yourls_update_option( 'next_id', $next_id );
-        yourls_get_db()->perform( "DROP TABLE `$table`" );
+        yourls_get_db('write-update_options_to_14')->perform( "DROP TABLE `$table`" );
     } else {
         yourls_update_option( 'next_id', 1 ); // In case someone mistakenly deleted the next_id constant or table too early
     }
@@ -294,7 +323,7 @@ function yourls_update_options_to_14() {
  *
  */
 function yourls_create_tables_for_14() {
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-create_tables_for_14');
 
     $queries = array();
 
@@ -333,7 +362,7 @@ function yourls_create_tables_for_14() {
  *
  */
 function yourls_alter_url_table_to_14() {
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-alter_url_table_to_14');
     $table = YOURLS_DB_TABLE_URL;
 
     $alters = array();
@@ -354,7 +383,7 @@ function yourls_alter_url_table_to_14() {
  *
  */
 function yourls_alter_url_table_to_14_part_two() {
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-alter_url_table_to_14_part_two');
     $table = YOURLS_DB_TABLE_URL;
 
     $alters = array();
@@ -374,7 +403,7 @@ function yourls_alter_url_table_to_14_part_two() {
  *
  */
 function yourls_update_table_to_14() {
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-update_table_to_14');
     $table = YOURLS_DB_TABLE_URL;
 
     // Modify each link to reflect new structure

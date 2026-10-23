@@ -11,12 +11,15 @@ function yourls_check_PDO() {
 }
 
 /**
- * Check if server has MySQL 5.0+
+ * Check if server has MySQL 5.5+
+ *
+ * In the unlikely event that someone is running MariaDB older than 10, install will probably fail,
+ * but there is no reliable way to check for MariaDB version
  *
  * @return bool
  */
-function yourls_check_database_version() {
-    return ( version_compare( '5.0', yourls_get_database_version() ) <= 0 );
+function yourls_check_database_version(): bool {
+    return ( version_compare( '5.5', yourls_get_database_version() ) <= 0 );
 }
 
 /**
@@ -27,24 +30,21 @@ function yourls_check_database_version() {
  */
 function yourls_get_database_version() {
     // Allow plugins to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_get_database_version', false );
-    if ( false !== $pre ) {
+    $pre = yourls_apply_filter( 'shunt_get_database_version', yourls_shunt_default() );
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
-    return yourls_sanitize_version(yourls_get_db()->mysql_version());
+    return yourls_sanitize_version(yourls_get_db('read-get_database_version')->mysql_version());
 }
 
 /**
- * Check if PHP > 7.2
- *
- * As of 1.8 we advertise YOURLS as being 7.4+ but it should work on 7.2 (although untested)
- * so we don't want to strictly enforce a limitation that may not be necessary.
+ * Check if PHP > 8.1
  *
  * @return bool
  */
-function yourls_check_php_version() {
-    return version_compare( PHP_VERSION, '7.2.0', '>=' );
+function yourls_check_php_version(): bool {
+    return version_compare( PHP_VERSION, '8.1.0', '>=' );
 }
 
 /**
@@ -199,15 +199,15 @@ function yourls_insert_with_markers( $filename, $marker, $insertion ) {
  * @since 1.3
  * @return array  An array like array( 'success' => array of success strings, 'errors' => array of error strings )
  */
-function yourls_create_sql_tables() {
+function yourls_create_sql_tables(): array {
     // Allow plugins (most likely a custom db.php layer in user dir) to short-circuit the whole function
-    $pre = yourls_apply_filter( 'shunt_yourls_create_sql_tables', null );
+    $pre = yourls_apply_filter( 'shunt_yourls_create_sql_tables', yourls_shunt_default() );
     // your filter function should return an array of ( 'success' => $success_msg, 'error' => $error_msg ), see below
-    if ( null !== $pre ) {
+    if ( yourls_shunt_default() !== $pre ) {
         return $pre;
     }
 
-    $ydb = yourls_get_db();
+    $ydb = yourls_get_db('write-create_sql_tables');
 
     $error_msg = array();
     $success_msg = array();
@@ -224,7 +224,8 @@ function yourls_create_sql_tables() {
          '`clicks` int(10) unsigned NOT NULL,'.
          'PRIMARY KEY (`keyword`),'.
          'KEY `ip` (`ip`),'.
-         'KEY `timestamp` (`timestamp`)'.
+         'KEY `timestamp` (`timestamp`),'.
+         'KEY `url_idx` (`url`(30))'.
         ') DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;';
 
     $create_tables[YOURLS_DB_TABLE_OPTIONS] =
@@ -252,6 +253,8 @@ function yourls_create_sql_tables() {
 
     $create_table_count = 0;
 
+    // Make install process verbose to help troubleshoot installation issues
+    $debug = yourls_get_debug_mode();
     yourls_debug_mode(true);
 
     // Create tables
@@ -280,6 +283,9 @@ function yourls_create_sql_tables() {
     } else {
         $error_msg[] = yourls__( 'Error creating YOURLS tables.' );
     }
+
+    // Restore debug mode to its original value
+    yourls_debug_mode( $debug );
 
     return array( 'success' => $success_msg, 'error' => $error_msg );
 }

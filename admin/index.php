@@ -301,7 +301,7 @@ yourls_table_tbody_start();
 
 // Main Query
 $where = yourls_apply_filter( 'admin_list_where', $where );
-$url_results = yourls_get_db()->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 {$where['sql']} ORDER BY `$sort_by` $sort_order LIMIT $offset, $perpage;", $where['binds'] );
+$url_results = yourls_get_db('read-admin_index')->fetchObjects( "SELECT * FROM `$table_url` WHERE 1=1 {$where['sql']} ORDER BY `$sort_by` $sort_order LIMIT $offset, $perpage;", $where['binds'] );
 $found_rows = false;
 if( $url_results ) {
     $found_rows = true;
@@ -325,6 +325,8 @@ yourls_table_tbody_end();
 yourls_table_end();
 
 yourls_do_action( 'admin_page_after_table' );
+
+yourls_delete_link_modal();
 
 if ( $is_bookmark )
     yourls_share_box( $url, $return['shorturl'], $title, $text );
