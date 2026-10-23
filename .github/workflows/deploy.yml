@@ -9,10 +9,9 @@ name: Deploy
 # --delete, repo-only files (tests, docs, samples) are neither uploaded nor
 # kept on the server.
 #
-# DRY RUN: DRY_RUN below defaults to 'true' until the first rsync plan has
-# been checked (look for "*deleting" lines in the "Deploy with rsync" step).
-# Then flip the default to 'false'. A manual "Run workflow" can always pick
-# dry_run=true or false.
+# LIVE since 2026-10-23, after two checked dry runs. A manual "Run workflow"
+# with dry_run=true prints the rsync plan ("*deleting" lines) without
+# touching the server.
 #
 # Required repository secrets:
 #   SSH_PRIVATE_KEY, SSH_DOMAIN, SSH_PORT, SSH_USER
@@ -34,7 +33,7 @@ on:
         description: 'Dry-run (true = print the rsync plan only, no server changes)'
         type: choice
         options: ['true', 'false']
-        default: 'true'
+        default: 'false'
 
 concurrency:
   group: deploy-production
@@ -78,7 +77,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     env:
-      DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
 
     steps:
       - name: Checkout
