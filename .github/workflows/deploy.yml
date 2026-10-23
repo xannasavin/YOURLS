@@ -4,9 +4,10 @@ name: Deploy
 # deploy in main.yml). Runs on every push to master, which includes the
 # GitHub "Sync fork" merges from upstream YOURLS.
 #
-# What goes to the server is controlled by .rsyncignore: excluded paths are
-# neither uploaded nor deleted, so user/config.php, .htaccess and other
-# server-only files survive --delete.
+# What goes to the server is controlled by the filter rules in .rsyncignore:
+# server-only files (user/config.php, .htaccess, ...) are protected from
+# --delete, repo-only files (tests, docs, samples) are neither uploaded nor
+# kept on the server.
 #
 # DRY RUN: DRY_RUN below defaults to 'true' until the first rsync plan has
 # been checked (look for "*deleting" lines in the "Deploy with rsync" step).
@@ -117,7 +118,7 @@ jobs:
             echo "Check every '*deleting' line before going live."
           fi
           rsync -rlptvz --delete --itemize-changes $DRY_FLAG \
-            --exclude-from=".rsyncignore" \
+            --filter="merge .rsyncignore" \
             -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=yes" \
             ./ "$SSH_USER@$SSH_DOMAIN:$DEPLOY_PATH/"
 

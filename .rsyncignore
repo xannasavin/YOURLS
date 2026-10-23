@@ -1,11 +1,51 @@
-# rsync filter list for .github/workflows/deploy.yml (--exclude-from).
+# rsync filter rules for .github/workflows/deploy.yml (--filter="merge ...").
 #
-# Everything excluded here is BOTH skipped on upload AND protected from
-# --delete on the server. That is how server-only files survive a deploy:
-# user/config.php, .htaccess, extra plugins, cPanel folders etc.
-#
-# Rules are checked top to bottom, first match wins. Lines starting with
-# "+ " are includes (needed for the user/ whitelist below).
+# Rules are checked top to bottom, first match wins. Prefixes:
+#   -  exclude on both sides: not uploaded AND protected from --delete.
+#      Used for server-only files (user/config.php, .htaccess, ...).
+#   H  hide on the sender only: not uploaded, but NOT protected, so a copy
+#      on the server is deleted. Used for repo-only files that must not be
+#      served (the old FTP deploy uploaded them by mistake).
+#   R  receiver-side "risk": lifts the protection of a later "-" rule, so
+#      the server copy gets deleted.
+#   +  include.
+
+# --- Repo-only files: never served, removed from the server if present ---
+H .git/
+H .github/
+H .gitignore
+H .gitattributes
+H .git-blame-ignore-revs
+H .git-ftp-ignore
+H .rsyncignore
+H .editorconfig
+H .claude/
+H .claude-bw/
+H *.md
+H /LICENSE
+H /readme.html
+H /composer.json
+H /composer.lock
+H /phpunit.xml
+H /phpunit.xml.dist
+H /sample-*.txt
+H /tests/
+H /build/
+H /coverage/
+H /includes/**/tests/
+H /includes/vendor/build-script/
+H /includes/vendor/composer/installed.json
+H /includes/vendor/**/composer.json
+H /includes/geo/*.txt
+H .ftp-deploy-sync-state.json
+
+# Demo code under user/ that the old FTP deploy uploaded
+H /user/config-sample.php
+R /user/config-sample.php
+H /user/pages/examplepage.php
+R /user/pages/examplepage.php
+H /user/plugins/sample-*/
+R /user/plugins/sample-*/
 
 # --- user/: only the bundled plugins we use + index.html guards ---
 # Everything else in user/ (config.php, languages, pages, extra plugins)
@@ -23,52 +63,25 @@
 + /user/plugins/random-shorturls/***
 - /user/**
 
-# --- Server-only files in the web root ---
-/.htaccess
-/.user.ini
-/php.ini
-/robots.txt
-/favicon.ico
-/error_log
-/.well-known/
-/cgi-bin/
-*.config
-*.conf
+# --- Server-only files in the web root: protected ---
+- /.htaccess
+- /.user.ini
+- /php.ini
+- /robots.txt
+- /favicon.ico
+- /error_log
+- /.well-known/
+- /cgi-bin/
+- *.config
+- *.conf
 
-# --- VCS + CI ---
-.git/
-.github/
-.gitignore
-.gitattributes
-.git-blame-ignore-revs
-.rsyncignore
-.editorconfig
-
-# --- Local-only tooling ---
-.claude/
-.claude-bw/
-.vscode/
-.vs/
-.idea/
-/nbproject/
-
-# --- Repo docs, samples, tests (not meant to be served) ---
-*.md
-/LICENSE
-/readme.html
-/composer.json
-/composer.lock
-/phpunit.xml
-/phpunit.xml.dist
-/sample-*.txt
-/tests/
-/build/
-/coverage/
-/includes/**/tests/
-
-# --- OS / editor junk ---
-.DS_Store
-Thumbs.db
-Desktop.ini
-*.swp
-*~
+# --- Local junk: neither uploaded nor touched ---
+- .vscode/
+- .vs/
+- .idea/
+- /nbproject/
+- .DS_Store
+- Thumbs.db
+- Desktop.ini
+- *.swp
+- *~
