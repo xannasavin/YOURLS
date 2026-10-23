@@ -44,12 +44,15 @@ H /user/config-sample.php
 R /user/config-sample.php
 H /user/pages/examplepage.php
 R /user/pages/examplepage.php
-H /user/plugins/sample-*/
-R /user/plugins/sample-*/
+H /user/plugins/sample-*/***
+R /user/plugins/sample-*/***
+# Local test script of the own plugin
+H /user/plugins/fuehringer/tests/
 
-# --- user/: only the bundled plugins we use + index.html guards ---
+# --- user/: only the plugins we use + index.html guards ---
 # Everything else in user/ (config.php, languages, pages, extra plugins)
 # lives on the server only and must never be overwritten or deleted.
+# Plugins: the own site plugin + the upstream core plugin hyphens-in-urls.
 + /user/
 + /user/index.html
 + /user/languages/
@@ -59,8 +62,7 @@ R /user/plugins/sample-*/
 + /user/plugins/
 + /user/plugins/index.html
 + /user/plugins/hyphens-in-urls/***
-+ /user/plugins/random-bg/***
-+ /user/plugins/random-shorturls/***
++ /user/plugins/fuehringer/***
 - /user/**
 
 # --- Server-only files in the web root: protected ---
@@ -72,7 +74,6 @@ R /user/plugins/sample-*/
 - /error_log
 - /.well-known/
 - /cgi-bin/
-- /404/
 - *.config
 - *.conf
 

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Link nicht gefunden</title>
+<style>
+  :root {
+    --bg: #F7F6F3;
+    --text: #2F3437;
+    --muted: #787774;
+    --line: #EAEAEA;
+    --tag-bg: #FDEBEC;
+    --tag-text: #9F2F2D;
+    --btn: #111111;
+    --btn-text: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191919;
+      --text: #E6E5E1;
+      --muted: #9B9A97;
+      --line: #2E2E2E;
+      --tag-bg: #3A2324;
+      --tag-text: #F0A9A6;
+      --btn: #E6E5E1;
+      --btn-text: #191919;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  }
+  main {
+    width: 100%;
+    max-width: 30rem;
+    animation: in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font: 600 12px/1.6 "SF Mono", ui-monospace, Consolas, monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 20px 0 12px;
+    font: 400 clamp(2.25rem, 8vw, 3rem)/1.1 "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    letter-spacing: -0.03em;
+  }
+  p { margin: 0 0 32px; color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 0 0 32px; }
+  a.btn {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 6px;
+    background: var(--btn);
+    color: var(--btn-text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 200ms, transform 200ms;
+  }
+  a.btn:hover { opacity: 0.85; }
+  a.btn:active { transform: scale(0.98); }
+  a.btn:focus-visible { outline: 2px solid var(--muted); outline-offset: 3px; }
+  @keyframes in { from { opacity: 0; transform: translateY(12px); } }
+  @media (prefers-reduced-motion: reduce) { main { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">404</span>
+  <h1>Diesen Kurzlink gibt es nicht.</h1>
+  <p>Vielleicht hat sich ein Tippfehler eingeschlichen, oder der Link wurde inzwischen gelöscht.</p>
+  <hr>
+  <a class="btn" href="https://fuehringer.de">Zu fuehringer.de</a>
+</main>
+</body>
+</html>
