@@ -157,13 +157,23 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
         run: |
           sleep 5
-          # Admin login page: proves PHP, config and DB connection work.
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/admin/" || echo "000")
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Smoke test FAILED: /admin/ returned HTTP $HTTP_CODE"
+          # Unknown keyword: goes through yourls-loader.php, which loads the
+          # config and asks the DB. 404 (site plugin) or 302 (core) is fine,
+          # 500 is broken, and more than 5 s means something loops (the old
+          # 404 plugin did). /admin/ sits behind basic auth, so it is no use.
+          RESULT=$(curl -s -o /dev/null -m 15 -w "%{http_code} %{time_total}" "$SITE_URL/smoke-test-$GITHUB_RUN_ID" || echo "000 15")
+          HTTP_CODE=${RESULT% *}
+          SECONDS_TAKEN=${RESULT#* }
+          echo "unknown keyword -> HTTP $HTTP_CODE in ${SECONDS_TAKEN}s"
+          if [ "$HTTP_CODE" != "404" ] && [ "$HTTP_CODE" != "302" ]; then
+            echo "::error::Smoke test FAILED: unknown keyword returned HTTP $HTTP_CODE"
             exit 1
           fi
-          echo "Smoke test passed (/admin/ HTTP 200)"
+          if [ "${SECONDS_TAKEN%.*}" -ge 5 ]; then
+            echo "::error::Smoke test FAILED: unknown keyword took ${SECONDS_TAKEN}s"
+            exit 1
+          fi
+          echo "Smoke test passed"
 
       - name: Dry-run summary
         if: ${{ env.DRY_RUN == 'true' }}
