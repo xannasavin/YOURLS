@@ -44,8 +44,38 @@ permissions:
   contents: read
 
 jobs:
+  # Gate for the deploy. The upstream workflows (ci.yml etc.) stay in the repo
+  # but disabled: deleting them would turn every upstream change to them into
+  # a "Sync fork" conflict.
+  test:
+    name: PHP lint + plugin tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: none
+
+      # tests/ is skipped: upstream keeps intentionally broken fixtures there,
+      # and it is never deployed.
+      - name: Lint all deployed PHP files
+        run: |
+          set -o pipefail
+          git ls-files -z '*.php' ':!tests/' | xargs -0 -n1 -P4 php -l | { grep -v '^No syntax errors detected' || true; }
+
+      - name: Site plugin tests
+        run: php user/plugins/fuehringer/tests/run.php
+
   deploy:
     name: Deploy via rsync
+    needs: test
     runs-on: ubuntu-latest
     env:
       DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
